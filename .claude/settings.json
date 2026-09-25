@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "defaultMode": "bypassPermissions",
+    "allow": [
+      "read",
+      "write",
+      "execute",
+      "network"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\Eugene\\AppData\\Local\\Temp\\claude\\c--Users-Eugene-Projects-architecture-agent\\ade86fcf-4319-48d9-8d51-4b0a5d820cc9\\scratchpad",
+      "\\tmp",
+      "C:\\Users\\Eugene\\Projects\\architecture-agent\\Mural",
+      "c:\\c\\Users\\Eugene\\Projects\\architecture-agent\\test_migration\\test_project\\meta-models\\enterprise-architecture\\concepts",
+      "c:\\c\\Users\\Eugene\\Projects\\architecture-agent\\TODL\\src\\model",
+      "c:\\c\\Users\\Eugene\\Projects\\architecture-agent\\Plexus\\src\\renderer\\src\\modules\\architecture-projects\\services",
+      "c:\\c\\Users\\Eugene\\Projects\\architecture-agent\\Mural\\docs\\superpowers",
+      "c:\\c\\Users\\Eugene\\Projects\\architecture-agent\\TODL\\docs\\superpowers\\plans",
+      "C:\\Users\\Eugene\\Projects\\architecture-agent\\Plexus\\e2e\\.artifacts",
+      "c:\\c\\tmp",
+      "c:\\c\\Users\\Eugene\\AppData\\Local\\Temp\\claude\\c--Users-Eugene-Projects-architecture-agent\\fd38bf14-2684-4fec-8ac1-407454b60774\\scratchpad"
+    ]
+  }
+}
