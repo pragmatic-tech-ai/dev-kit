@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400" width="600" height="400">
+  <defs>
+    <pattern id="dotgrid" width="20" height="20" patternUnits="userSpaceOnUse">
+      <circle cx="1" cy="1" r="1" fill="#D6D5D0"></circle>
+    </pattern>
+  </defs>
+  <rect width="600" height="400" fill="#FAFAF9"></rect>
+  <rect width="600" height="400" fill="url(#dotgrid)" opacity="0.5"></rect>
+
+  <g font-family="JetBrains Mono, monospace" font-size="11" fill="#22211E">
+    <g>
+      <rect x="40" y="40" width="160" height="56" rx="6" fill="#FFFFFF" stroke="#D6D5D0"></rect>
+      <text x="56" y="62" font-weight="600">Customer</text>
+      <text x="56" y="80" fill="#5F5C56">5 sub-capabilities</text>
+    </g>
+    <g>
+      <rect x="220" y="40" width="160" height="56" rx="6" fill="#FFFFFF" stroke="#D6D5D0"></rect>
+      <text x="236" y="62" font-weight="600">Product</text>
+      <text x="236" y="80" fill="#5F5C56">8 sub-capabilities</text>
+    </g>
+    <g>
+      <rect x="400" y="40" width="160" height="56" rx="6" fill="#FFFFFF" stroke="#D6D5D0"></rect>
+      <text x="416" y="62" font-weight="600">Operations</text>
+      <text x="416" y="80" fill="#5F5C56">6 sub-capabilities</text>
+    </g>
+
+    <g>
+      <rect x="40" y="140" width="100" height="44" rx="6" fill="#FFFFFF" stroke="#D6D5D0"></rect>
+      <text x="54" y="166" font-weight="500">Identity</text>
+    </g>
+    <g>
+      <rect x="150" y="140" width="100" height="44" rx="6" fill="#E2F3E9" stroke="#2EA862"></rect>
+      <text x="164" y="166" font-weight="500">Onboarding</text>
+    </g>
+    <g>
+      <rect x="260" y="140" width="100" height="44" rx="6" fill="#FFFFFF" stroke="#D6D5D0"></rect>
+      <text x="274" y="166" font-weight="500">Catalog</text>
+    </g>
+    <g>
+      <rect x="370" y="140" width="100" height="44" rx="6" fill="#FFFFFF" stroke="#D6D5D0"></rect>
+      <text x="384" y="166" font-weight="500">Pricing</text>
+    </g>
+    <g>
+      <rect x="480" y="140" width="100" height="44" rx="6" fill="#FFFFFF" stroke="#D6D5D0"></rect>
+      <text x="494" y="166" font-weight="500">Logistics</text>
+    </g>
+
+    <g>
+      <rect x="40" y="230" width="80" height="36" rx="6" fill="#FFFFFF" stroke="#D6D5D0"></rect>
+      <text x="50" y="252" font-size="10" font-weight="500">Profile</text>
+    </g>
+    <g>
+      <rect x="130" y="230" width="80" height="36" rx="6" fill="#FFFFFF" stroke="#D6D5D0"></rect>
+      <text x="140" y="252" font-size="10" font-weight="500">Auth</text>
+    </g>
+    <g>
+      <rect x="220" y="230" width="80" height="36" rx="6" fill="#FFFFFF" stroke="#D6D5D0"></rect>
+      <text x="230" y="252" font-size="10" font-weight="500">SKU</text>
+    </g>
+    <g>
+      <rect x="310" y="230" width="80" height="36" rx="6" fill="#FFFFFF" stroke="#D6D5D0"></rect>
+      <text x="320" y="252" font-size="10" font-weight="500">Inventory</text>
+    </g>
+    <g>
+      <rect x="400" y="230" width="80" height="36" rx="6" fill="#FFFFFF" stroke="#D6D5D0"></rect>
+      <text x="410" y="252" font-size="10" font-weight="500">Quote</text>
+    </g>
+    <g>
+      <rect x="490" y="230" width="80" height="36" rx="6" fill="#FFFFFF" stroke="#D6D5D0"></rect>
+      <text x="500" y="252" font-size="10" font-weight="500">Routing</text>
+    </g>
+  </g>
+
+  <g stroke="#B5B3AC" stroke-width="1" fill="none">
+    <path d="M120 96 L120 140"></path>
+    <path d="M200 96 L200 140"></path>
+    <path d="M300 96 L300 140"></path>
+    <path d="M310 96 L420 140"></path>
+    <path d="M480 96 L530 140"></path>
+
+    <path d="M80 184 L80 230"></path>
+    <path d="M170 184 L170 230"></path>
+    <path d="M300 184 L260 230"></path>
+    <path d="M310 184 L350 230"></path>
+    <path d="M420 184 L440 230"></path>
+    <path d="M530 184 L530 230"></path>
+  </g>
+
+  <text x="40" y="350" font-family="JetBrains Mono, monospace" font-size="10" font-weight="500" letter-spacing="1.5" fill="#5F5C56">CAPABILITY MAP — RETAIL DOMAIN</text>
+  <line x1="40" y1="362" x2="560" y2="362" stroke="#D6D5D0"></line>
+</svg>
