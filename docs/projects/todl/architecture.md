@@ -54,6 +54,8 @@ Three properties are worth internalising up front:
   generated, or generated-then-edited are indistinguishable, exactly like `tsc`
   treating a `.ts` the same however it was produced.
 
+**Deep dive:** [What TODL is](architecture/what-todl-is.md) — the full article.
+
 ---
 
 ## 2. The two-minute mental model
@@ -96,6 +98,8 @@ Read it top to bottom: text becomes a graph, the graph is serialised a few ways,
 and those serialisations are consumed (typed clients), published (packages), or
 compiled into an app.
 
+**Deep dive:** [The two-minute mental model](architecture/mental-model.md) — the full article.
+
 ---
 
 ## 3. Repository map
@@ -122,6 +126,8 @@ are the demo/corpus suite and are **not** published (`files: ["dist", "README.md
 | `src/language-service/` | Pure whole-project analysis behind the LSP (completion, hover, references, …). |
 | `src/migrate/` | Mechanical rewriter for legacy sources → current surface. |
 | `src/index.ts` | The package's root barrel (public API surface). |
+
+**Deep dive:** [Repository map](architecture/repository-map.md) — the full article.
 
 ---
 
@@ -222,6 +228,8 @@ own values (class-wins for the ontology view).
 - **Closure** — the transitive set of bases a project depends on. Resolving the
   closure is a job of the build's package sources (§8, §9).
 
+**Deep dive:** [Core concepts](architecture/core-concepts.md) — the full article.
+
 ---
 
 ## 5. The compiler (compiler-services)
@@ -302,6 +310,8 @@ families:
   a library carrying its meta-model composes with the prelude without duplicate
   nodes.
 
+**Deep dive:** [The compiler](architecture/compiler.md) — the full article.
+
 ---
 
 ## 6. Manifest and reflection
@@ -332,6 +342,8 @@ are the packed, read-only runtime view. Parity between them is asserted in
 
 For versioned, cross-package scenarios, `src/domain/` (`Domain`, `FrozenGraph`,
 `Heap`) hosts many manifests at once and resolves cross-manifest type references.
+
+**Deep dive:** [Manifest and reflection](architecture/manifest-reflection.md) — the full article.
 
 ---
 
@@ -382,6 +394,8 @@ stages typed instances (fail-fast on dangling refs), and `toTodl()` /
 record it consumes is exactly what codegen's authoring constructors emit.
 `TodlFileStore` is the save/load seam over an injected `FileIO`.
 
+**Deep dive:** [Consuming a model](architecture/consuming-a-model.md) — the full article.
+
 ---
 
 ## 8. Publish and packages
@@ -417,6 +431,8 @@ authored `project.plexus` manifest is transformed to an npm `package.json` by
 `toPackageJson`, which pins every base as an exact scoped dependency and embeds a
 `todl` block identifying the package kind and id independent of scope.
 
+**Deep dive:** [Publish and packages](architecture/publish-and-packages.md) — the full article.
+
 ---
 
 ## 9. Projects and solutions
@@ -443,6 +459,8 @@ topo-sorts it (rejecting cycles), and runs each project through
 `TodlProjectBuildManager`. After each success it captures the freshly built
 `model.json` into an in-memory `BuildOutputSource` that is prepended to the source
 chain, so a dependent resolves its siblings' just-built packages.
+
+**Deep dive:** [Projects and solutions](architecture/projects-and-solutions.md) — the full article.
 
 ---
 
@@ -523,6 +541,8 @@ list (`html-bundle-build-system.ts`):
 > *data* into it. View logic now lives in the project's generated (and overridable)
 > `app.mu`, and the runtime is compiled fresh each build.
 
+**Deep dive:** [The build system](architecture/build-system.md) — the full article.
+
 ---
 
 ## 11. The runnable app
@@ -552,6 +572,8 @@ The build output `index.html` is fully self-contained. At runtime:
 > it. `ApplicationBootstrapper`/`ApplicationEntryPoint`/`ModelRegistryContribution`
 > remain the shared composition machinery; only the view contribution diverges.
 
+**Deep dive:** [The runnable app](architecture/runnable-app.md) — the full article.
+
 ---
 
 ## 12. Tooling
@@ -574,6 +596,8 @@ The build output `index.html` is fully self-contained. At runtime:
   legacy sources (sigil strip `&ref`/`@ref` → `ref`, `list<T>` → `T[]`, old
   cardinality → `?`/`[]`/`[+]`, `enum{}` → `taxonomy{}`); `recase.ts` handles the
   kebab → C-like identifier convention.
+
+**Deep dive:** [Tooling](architecture/tooling.md) — the full article.
 
 ---
 
@@ -606,6 +630,8 @@ todl consumer gets the runtime primitives without importing that package directl
 >   `Repository`). It is not exported as the root `Graph` (the root `Graph` is the
 >   compiler's `compiler-services/model/graph.ts`).
 
+**Deep dive:** [Package surface and dependencies](architecture/package-surface.md) — the full article.
+
 ---
 
 ## 14. Testing and conventions
@@ -631,6 +657,8 @@ todl consumer gets the runtime primitives without importing that package directl
 - **Work tracking.** Specs, plans, and tasks live in the GitHub Project
   *Architecture Agentic Suite* (org `pragmatic-tech-ai`, project 1), not under
   `docs/`.
+
+**Deep dive:** [Testing and conventions](architecture/testing-and-conventions.md) — the full article.
 
 ---
 
@@ -668,6 +696,8 @@ The page rehydrates the DTO from `window.__TODL_APP__`, constructs the mural
 into `#todl-app-root` with the Material theme and the DTO as DataContext. mural
 renders the per-concept lists — each row showing its entity `id` via
 `DisplayMemberPath` — bound live to the model.
+
+**Deep dive:** [End-to-end walkthroughs](architecture/walkthroughs.md) — the full article.
 
 ---
 
