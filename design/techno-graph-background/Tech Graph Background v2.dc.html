@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="../design-systems/default/colors_and_type.css">
+  <script src="../design-systems/default/_ds_bundle.js"></script>
+</helmet>
+<div style="position:relative;width:1920px;height:1080px;background:#0A0A0B;overflow:hidden;">
+  <div style="position:absolute;inset:0;background-image:radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px);background-size:24px 24px;opacity:0.6;"></div>
+  <canvas ref="{{ canvasRef }}" style="position:absolute;inset:0;width:100%;height:100%;display:block;"></canvas>
+  <div style="position:absolute;inset:0;box-shadow:inset 0 0 280px 40px rgba(10,10,11,0.92);pointer-events:none;"></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1920,&quot;height&quot;:1080},&quot;animate&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Behavior&quot;},&quot;density&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;medium&quot;,&quot;options&quot;:[&quot;sparse&quot;,&quot;medium&quot;,&quot;dense&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Graph&quot;},&quot;accent&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;green&quot;,&quot;options&quot;:[&quot;mono&quot;,&quot;green&quot;,&quot;multi&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Graph&quot;},&quot;seed&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:7,&quot;min&quot;:1,&quot;max&quot;:99,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Graph&quot;}}">
+class Component extends DCLogic {
+  canvasRef = React.createRef();
+  renderVals() { return { canvasRef: this.canvasRef }; }
+  componentDidMount() { this.build(); }
+  componentDidUpdate(p) {
+    if (p.density !== this.props.density || p.accent !== this.props.accent || p.animate !== this.props.animate || p.seed !== this.props.seed) this.build();
+  }
+  componentWillUnmount() { cancelAnimationFrame(this.raf); }
+
+  build() {
+    cancelAnimationFrame(this.raf);
+    const canvas = this.canvasRef.current; if (!canvas) return;
+    const W = 1920, H = 1080, G = 24;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = W * dpr; canvas.height = H * dpr;
+    const ctx = canvas.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    let s = (this.props.seed ?? 7) * 2654435761 >>> 0;
+    const rnd = () => { s += 0x6D2B79F5; let t = s; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+    const snap = v => Math.round(v / G) * G;
+
+    const density = this.props.density ?? 'medium';
+    const accent = this.props.accent ?? 'green';
+    const animate = this.props.animate ?? true;
+    const cfg = { sparse: [4, 3, 4], medium: [6, 4, 6], dense: [7, 5, 9] }[density] || [6, 4, 6];
+    const [cols, rows, kids] = cfg;
+
+    const GREEN = '46,168,98', CYAN = '58,166,185', PLUM = '124,107,173', GREY = '160,164,170';
+    const leafCols = accent === 'mono' ? [GREY] : accent === 'multi' ? [GREY, GREY, CYAN, PLUM] : [GREY, GREY, GREY, CYAN];
+    const pick = a => a[Math.floor(rnd() * a.length)];
+    const hex2 = () => Math.floor(rnd() * 255);
+
+    // hubs on a jittered grid
+    const hubs = [];
+    const cw = W / cols, ch = H / rows;
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+      if (rnd() < 0.18) continue;
+      hubs.push({ x: snap(cw * (c + 0.5) + (rnd() - 0.5) * cw * 0.5), y: snap(ch * (r + 0.5) + (rnd() - 0.5) * ch * 0.5), hub: true, col: GREEN, label: 'CORE-' + String(hubs.length + 1).padStart(2, '0') });
+    }
+    const nodes = [...hubs], edges = [];
+    const route = (a, b) => {
+      const dx = b.x - a.x, dy = b.y - a.y, ax = Math.abs(dx), ay = Math.abs(dy), sx = Math.sign(dx), sy = Math.sign(dy);
+      const straightFirst = rnd() < 0.5;
+      if (ax > ay) return straightFirst ? [a, { x: a.x + sx * (ax - ay), y: a.y }, b] : [a, { x: a.x + sx * ay, y: b.y }, b];
+      return straightFirst ? [a, { x: a.x, y: a.y + sy * (ay - ax) }, b] : [a, { x: b.x, y: a.y + sy * ax }, b];
+    };
+    const addEdge = (a, b, kind) => {
+      const pts = route(a, b); let len = 0; const segs = [];
+      for (let i = 1; i < pts.length; i++) { const l = Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y); segs.push(l); len += l; }
+      edges.push({ a, b, pts, segs, len, kind });
+    };
+    // backbone: each hub to 2 nearest
+    const seen = new Set();
+    hubs.forEach((h, i) => {
+      hubs.map((o, j) => [j, Math.hypot(o.x - h.x, o.y - h.y)]).filter(([j]) => j !== i).sort((a, b) => a[1] - b[1]).slice(0, 2).forEach(([j]) => {
+        const k = Math.min(i, j) + '-' + Math.max(i, j); if (seen.has(k)) return; seen.add(k); addEdge(h, hubs[j], 'core');
+      });
+    });
+    // clusters
+    hubs.forEach(h => {
+      const n = Math.max(2, kids - 2 + Math.floor(rnd() * 4)); const base = rnd() * Math.PI * 2;
+      for (let i = 0; i < n; i++) {
+        const ang = base + (i / n) * Math.PI * 2 + (rnd() - 0.5) * 0.4, rad = 96 + rnd() * 110;
+        const c = { x: snap(h.x + Math.cos(ang) * rad), y: snap(h.y + Math.sin(ang) * rad), col: pick(leafCols), label: rnd() < 0.35 ? `10.${hex2() % 32}.${hex2()}.${hex2()}` : null };
+        nodes.push(c); addEdge(h, c, 'leaf');
+        if (rnd() < 0.3) {
+          const a2 = ang + (rnd() - 0.5) * 0.9, r2 = 48 + rnd() * 48;
+          const d = { x: snap(c.x + Math.cos(a2) * r2), y: snap(c.y + Math.sin(a2) * r2), col: c.col, tiny: true };
+          nodes.push(d); addEdge(c, d, 'twig');
+        }
+      }
+    });
+
+    const at = (e, d) => {
+      for (let i = 0; i < e.segs.length; i++) {
+        if (d <= e.segs[i]) { const p = e.pts[i], q = e.pts[i + 1], t = d / e.segs[i]; return { x: p.x + (q.x - p.x) * t, y: p.y + (q.y - p.y) * t }; }
+        d -= e.segs[i];
+      }
+      return e.pts[e.pts.length - 1];
+    };
+
+    // static layer
+    const bg = document.createElement('canvas'); bg.width = W * dpr; bg.height = H * dpr;
+    const b = bg.getContext('2d'); b.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const stroke = (e, style, w, dash) => { b.strokeStyle = style; b.lineWidth = w; b.setLineDash(dash || []); b.beginPath(); b.moveTo(e.pts[0].x, e.pts[0].y); e.pts.slice(1).forEach(p => b.lineTo(p.x, p.y)); b.stroke(); };
+    edges.forEach(e => {
+      if (e.kind === 'core') { stroke(e, `rgba(${GREEN},0.10)`, 5); stroke(e, `rgba(${GREEN},0.34)`, 1.2); }
+      else if (e.kind === 'leaf') stroke(e, `rgba(${GREY},0.16)`, 1);
+      else stroke(e, `rgba(${GREY},0.12)`, 1, [2, 4]);
+    });
+    b.setLineDash([]);
+    // bend joints on core edges
+    edges.filter(e => e.kind === 'core').forEach(e => { const p = e.pts[1]; b.fillStyle = `rgba(${GREEN},0.4)`; b.fillRect(p.x - 1.5, p.y - 1.5, 3, 3); });
+    b.font = '500 10px "JetBrains Mono", ui-monospace, monospace'; b.textBaseline = 'middle';
+    nodes.forEach(n => {
+      if (n.hub) {
+        b.fillStyle = '#0A0A0B'; b.fillRect(n.x - 9, n.y - 9, 18, 18);
+        b.strokeStyle = `rgba(${GREEN},0.7)`; b.lineWidth = 1; b.strokeRect(n.x - 8.5, n.y - 8.5, 17, 17);
+        b.strokeStyle = `rgba(${GREEN},0.18)`; b.strokeRect(n.x - 14.5, n.y - 14.5, 29, 29);
+        b.fillStyle = `rgba(${GREEN},0.9)`; b.fillRect(n.x + 1, n.y - 6, 5, 5);
+        b.fillStyle = `rgba(${GREEN},0.55)`; b.letterSpacing = '1px'; b.fillText(n.label, n.x + 22, n.y - 12);
+      } else if (n.tiny) {
+        b.fillStyle = `rgba(${n.col},0.45)`; b.fillRect(n.x - 1.5, n.y - 1.5, 3, 3);
+      } else {
+        b.fillStyle = '#0A0A0B'; b.fillRect(n.x - 4, n.y - 4, 8, 8);
+        b.strokeStyle = `rgba(${n.col},0.55)`; b.lineWidth = 1; b.strokeRect(n.x - 3.5, n.y - 3.5, 7, 7);
+        if (n.label) { b.fillStyle = `rgba(${GREY},0.28)`; b.letterSpacing = '0px'; b.fillText(n.label, n.x + 10, n.y + 1); }
+      }
+    });
+
+    // packets
+    const coreE = edges.filter(e => e.kind === 'core'), leafE = edges.filter(e => e.kind === 'leaf');
+    const spawn = () => { const core = rnd() < 0.55; const e = pick(core ? coreE : leafE); return { e, d: 0, v: (core ? 1.1 : 0.7) + rnd() * 0.6, rev: rnd() < 0.5, col: core ? GREEN : e.b.col === GREY ? GREEN : e.b.col }; };
+    const packets = Array.from({ length: density === 'dense' ? 34 : density === 'sparse' ? 12 : 22 }, () => { const p = spawn(); p.d = rnd() * p.e.len; return p; });
+    const blinkers = nodes.filter(n => !n.hub && !n.tiny).filter(() => rnd() < 0.15).map(n => ({ n, ph: rnd() * 6.28, sp: 0.5 + rnd() }));
+
+    let t = 0;
+    const frame = () => {
+      t += 0.016;
+      ctx.clearRect(0, 0, W, H); ctx.drawImage(bg, 0, 0, W, H);
+      blinkers.forEach(k => { const a = 0.25 + 0.35 * (0.5 + 0.5 * Math.sin(t * k.sp + k.ph)); ctx.fillStyle = `rgba(${k.n.col},${a.toFixed(3)})`; ctx.fillRect(k.n.x - 2, k.n.y - 2, 4, 4); });
+      packets.forEach((p, i) => {
+        if (animate) p.d += p.v;
+        if (p.d > p.e.len) { packets[i] = spawn(); return; }
+        const pos = d => at(p.e, p.rev ? p.e.len - d : d);
+        for (let k = 1; k <= 10; k++) { const q = pos(Math.max(0, p.d - k * 3)); ctx.fillStyle = `rgba(${p.col},${(0.22 * (1 - k / 11)).toFixed(3)})`; ctx.fillRect(q.x - 1, q.y - 1, 2, 2); }
+        const h = pos(p.d); ctx.fillStyle = `rgba(${p.col},0.85)`; ctx.fillRect(h.x - 1.5, h.y - 1.5, 3, 3);
+      });
+      if (animate) this.raf = requestAnimationFrame(frame);
+    };
+    const go = () => { frame(); };
+    (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(go);
+  }
+}
+</script>
+</body>
+</html>
