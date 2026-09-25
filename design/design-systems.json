@@ -1,0 +1,19 @@
+{
+  "_comment": "Registry of design systems imported from Claude Design (claude.ai/design). The import skill (.claude/skills/import-design-system) resolves each name to its projectId and refreshes design-systems/<name>/ via the DesignSync tool. Add a system by adding an entry here.",
+  "systems": {
+    "default": {
+      "projectId": "019de500-d1d8-77f6-807b-52d2f6286328",
+      "name": "Pragmatic Labs Design System",
+      "url": "https://claude.ai/design/p/019de500-d1d8-77f6-807b-52d2f6286328",
+      "focusFiles": [
+        "_adherence.oxlintrc.json",
+        "_ds_bundle.js",
+        "_ds_manifest.json",
+        "colors_and_type.css",
+        "Pragmatic Labs Marketing Site.html",
+        "README.md",
+        "SKILL.md"
+      ]
+    }
+  }
+}

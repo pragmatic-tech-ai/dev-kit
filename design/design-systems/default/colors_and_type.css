@@ -1,0 +1,317 @@
+/* =============================================================
+   Pragmatic Labs — Design Tokens
+   colors_and_type.css
+
+   This is the single source of truth for color, type, spacing,
+   radii, shadows, and motion. Everything in the design system
+   should reference these variables.
+
+   Two themes are defined: light (default) and dark
+   (apply `data-theme="dark"` on <html> or any ancestor).
+   ============================================================= */
+
+
+/* ----- Fonts ------------------------------------------------- */
+/* Loaded from Google Fonts CDN. To self-host, download the
+   matching TTF/WOFF2 files into fonts/ and replace these imports
+   with @font-face rules. */
+
+@import url("https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&display=swap");
+
+
+/* ----- Light theme (default) -------------------------------- */
+
+:root {
+  /* --- Neutral ramp (warm-cool, paper to ink) --- */
+  --neutral-0:  #FFFFFF;
+  --neutral-50: #FAFAF9;   /* paper */
+  --neutral-100:#F4F4F2;
+  --neutral-200:#E9E8E4;
+  --neutral-300:#D6D5D0;
+  --neutral-400:#B5B3AC;
+  --neutral-500:#8A8780;
+  --neutral-600:#5F5C56;
+  --neutral-700:#3D3B36;
+  --neutral-800:#22211E;
+  --neutral-900:#141312;
+  --neutral-1000:#0A0A0B;  /* ink */
+
+  /* --- Brand --- */
+  --brand-green:       #2EA862;   /* Signal Green — primary brand */
+  --brand-green-hover: #258A50;
+  --brand-green-press: #1B6B3D;
+  --brand-green-soft:  #E2F3E9;   /* tinted bg */
+
+  /* --- Supporting accents --- */
+  --accent-cyan:  #3AA6B9;
+  --accent-cyan-soft: #E2F1F4;
+  --accent-plum:  #7C6BAD;
+  --accent-plum-soft: #EEEAF5;
+
+  /* --- Semantic state --- */
+  --state-success:        #4A8E3A;
+  --state-success-soft:   #E8F2E2;
+  --state-warning:        #C68A0E;
+  --state-warning-soft:   #FBF1D8;
+  --state-danger:         #C24532;
+  --state-danger-soft:    #FBE4DF;
+  --state-info:           var(--accent-cyan);
+  --state-info-soft:      var(--accent-cyan-soft);
+
+  /* --- Surfaces (semantic) --- */
+  --bg-0: var(--neutral-50);    /* page surface */
+  --bg-1: var(--neutral-0);     /* elevated card */
+  --bg-2: var(--neutral-100);   /* hovered surface */
+  --bg-3: var(--neutral-200);   /* pressed / selected surface */
+  --bg-inverse: var(--neutral-1000);
+
+  /* --- Foregrounds (semantic) --- */
+  --fg-0: var(--neutral-1000);  /* primary text */
+  --fg-1: var(--neutral-800);   /* default text */
+  --fg-2: var(--neutral-600);   /* secondary text */
+  --fg-3: var(--neutral-500);   /* tertiary / placeholder */
+  --fg-disabled: var(--neutral-400);
+  --fg-on-accent: var(--neutral-0);
+  --fg-inverse: var(--neutral-50);
+
+  /* --- Borders --- */
+  --border:        var(--neutral-200);
+  --border-strong: var(--neutral-300);
+  --border-focus:  var(--brand-green);
+
+  /* --- Scrim (modal overlay) --- */
+  --scrim: rgba(10, 10, 11, 0.40);
+
+  /* --- Shadows --- */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.10), 0 2px 6px rgba(0, 0, 0, 0.05);
+
+  /* --- Type families --- */
+  --font-sans:  "Inter Tight", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --font-mono:  "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --font-serif: "Source Serif 4", "Iowan Old Style", "Charter", Georgia, serif;
+
+  /* --- Type scale (tight, decisive) --- */
+  --text-xs:   12px;
+  --text-sm:   13px;
+  --text-base: 15px;     /* default body */
+  --text-md:   17px;
+  --text-lg:   20px;
+  --text-xl:   24px;
+  --text-2xl:  32px;
+  --text-3xl:  44px;
+  --text-4xl:  60px;
+  --text-5xl:  80px;
+
+  /* --- Line heights --- */
+  --leading-tight:   1.15;
+  --leading-snug:    1.30;
+  --leading-normal:  1.55;
+  --leading-relaxed: 1.70;
+
+  /* --- Letter spacing --- */
+  --tracking-display: -0.02em;
+  --tracking-tight:   -0.01em;
+  --tracking-normal:   0em;
+  --tracking-label:    0.10em;   /* for ALL-CAPS mono labels */
+
+  /* --- Font weights --- */
+  --weight-regular:  400;
+  --weight-medium:   500;
+  --weight-semibold: 600;
+  --weight-bold:     700;
+
+  /* --- Spacing (4px grid) --- */
+  --space-1:   4px;
+  --space-2:   8px;
+  --space-3:   12px;
+  --space-4:   16px;
+  --space-5:   24px;
+  --space-6:   32px;
+  --space-7:   48px;
+  --space-8:   64px;
+  --space-9:   96px;
+  --space-10: 128px;
+
+  /* --- Radii --- */
+  --radius-xs:  2px;     /* code blocks, chips */
+  --radius-sm:  4px;
+  --radius-md:  6px;     /* default UI */
+  --radius-lg: 10px;     /* cards, modals */
+  --radius-xl: 14px;     /* marketing cards */
+  --radius-pill: 999px;
+
+  /* --- Motion --- */
+  --ease-out:   cubic-bezier(0.2, 0, 0, 1); /* @kind other */
+  --ease-inout: cubic-bezier(0.4, 0, 0.2, 1); /* @kind other */
+  --duration-fast:   120ms; /* @kind other */
+  --duration-base:   200ms; /* @kind other */
+  --duration-slow:   320ms; /* @kind other */
+
+  /* --- Layout --- */
+  --max-content: 1280px;
+  --nav-height:  56px;
+}
+
+
+/* ----- Dark theme ------------------------------------------- */
+
+[data-theme="dark"] {
+  --bg-0: var(--neutral-1000);
+  --bg-1: var(--neutral-900);
+  --bg-2: var(--neutral-800);
+  --bg-3: var(--neutral-700);
+  --bg-inverse: var(--neutral-50);
+
+  --fg-0: #F5F5F2;
+  --fg-1: #E8E7E2;
+  --fg-2: #B5B3AC;
+  --fg-3: #8A8780;
+  --fg-disabled: #5F5C56;
+  --fg-on-accent: #FFFFFF;
+  --fg-inverse: var(--neutral-1000);
+
+  --border:        #2A2925;
+  --border-strong: #3D3B36;
+  --border-focus:  var(--brand-green);
+
+  --brand-green-soft:  #0F2A1A;
+  --accent-cyan-soft:   #143036;
+  --accent-plum-soft:   #1F1A2E;
+  --state-success-soft: #1B2E16;
+  --state-warning-soft: #3A2C0A;
+  --state-danger-soft:  #3A1B14;
+  --state-info-soft:    var(--accent-cyan-soft);
+
+  --scrim: rgba(0, 0, 0, 0.60);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.40);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.50), 0 1px 2px rgba(0, 0, 0, 0.40);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.60), 0 2px 6px rgba(0, 0, 0, 0.40);
+}
+
+
+/* ----- Reduced motion --------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 0ms; /* @kind other */
+    --duration-base: 0ms; /* @kind other */
+    --duration-slow: 0ms; /* @kind other */
+  }
+}
+
+
+/* =============================================================
+   Semantic helper classes
+   These are optional sugar; everything important is a CSS var.
+   ============================================================= */
+
+
+/* --- Reset-ish baseline --- */
+.pl-base {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  color: var(--fg-1);
+  background: var(--bg-0);
+  font-feature-settings: "ss01", "cv11";
+}
+
+
+/* --- Display & headings --- */
+.pl-display-1 {
+  font-family: var(--font-sans);
+  font-size: var(--text-5xl);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-display);
+  font-weight: var(--weight-semibold);
+  color: var(--fg-0);
+}
+.pl-display-2 {
+  font-family: var(--font-sans);
+  font-size: var(--text-4xl);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-display);
+  font-weight: var(--weight-semibold);
+  color: var(--fg-0);
+}
+.pl-h1 {
+  font-family: var(--font-sans);
+  font-size: var(--text-3xl);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-display);
+  font-weight: var(--weight-semibold);
+  color: var(--fg-0);
+}
+.pl-h2 {
+  font-family: var(--font-sans);
+  font-size: var(--text-2xl);
+  line-height: var(--leading-snug);
+  letter-spacing: var(--tracking-tight);
+  font-weight: var(--weight-semibold);
+  color: var(--fg-0);
+}
+.pl-h3 {
+  font-family: var(--font-sans);
+  font-size: var(--text-xl);
+  line-height: var(--leading-snug);
+  letter-spacing: var(--tracking-tight);
+  font-weight: var(--weight-semibold);
+  color: var(--fg-0);
+}
+.pl-h4 {
+  font-family: var(--font-sans);
+  font-size: var(--text-md);
+  line-height: var(--leading-snug);
+  font-weight: var(--weight-semibold);
+  color: var(--fg-0);
+}
+
+
+/* --- Body --- */
+.pl-body {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  color: var(--fg-1);
+}
+.pl-body-sm {
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  color: var(--fg-2);
+}
+.pl-body-serif {
+  font-family: var(--font-serif);
+  font-size: var(--text-md);
+  line-height: var(--leading-relaxed);
+  color: var(--fg-1);
+}
+
+
+/* --- Code & labels --- */
+.pl-code {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  background: var(--bg-2);
+  padding: 0.15em 0.35em;
+  border-radius: var(--radius-xs);
+  color: var(--fg-0);
+}
+.pl-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  font-weight: var(--weight-medium);
+  color: var(--fg-2);
+}
+
+
+/* --- Focus ring helper --- */
+.pl-focus:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
