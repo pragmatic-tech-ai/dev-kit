@@ -1,0 +1,9 @@
+# Jekyll build output (only produced in CI, but ignore locally too)
+_site/
+.jekyll-cache/
+.jekyll-metadata
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.tmp

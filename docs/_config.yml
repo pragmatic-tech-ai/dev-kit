@@ -1,0 +1,18 @@
+title: Architecture Agentic Suite — Dev Kit
+description: Documentation hub for TODL, Mural, Fresco, and Plexus.
+theme: jekyll-theme-cayman
+
+# The github-pages gem enables optional-front-matter, relative-links, and
+# titles-from-headings by default, so the migrated Markdown renders verbatim and
+# its `.md` cross-links are rewritten to page URLs. We only pin the layout so the
+# theme wraps every page (cayman ships a single `default` layout).
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: default
+
+# Internal scratch that must never be published, even if copied in later.
+exclude:
+  - README.md
+  - "*.tmp"
