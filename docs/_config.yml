@@ -7,6 +7,15 @@ theme: jekyll-theme-cayman
 repository: pragmatic-tech-ai/dev-kit
 ticket_label: docs-removal
 
+# Root navigation strip rendered in the header (docs/_layouts/default.html).
+nav:
+  - { title: Home, url: / }
+  - { title: TODL, url: /projects/todl/ }
+  - { title: todl-runtime, url: /projects/todl-runtime/ }
+  - { title: Mural, url: /projects/mural/ }
+  - { title: Fresco, url: /projects/fresco/ }
+  - { title: Plexus, url: /projects/plexus/ }
+
 # The github-pages gem enables optional-front-matter, relative-links, and
 # titles-from-headings by default, so the migrated Markdown renders verbatim and
 # its `.md` cross-links are rewritten to page URLs. We only pin the layout so the

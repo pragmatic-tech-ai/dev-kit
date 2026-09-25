@@ -1,0 +1,96 @@
+<!-- Forked from pages-themes/cayman default.html to add (1) an abstract SVG
+     header background in the Pragmatic palette and (2) a root project-navigation
+     strip below the header buttons. The {% include head-custom.html %} line is
+     preserved so the select-to-ticket feature keeps working. -->
+<!DOCTYPE html>
+<html lang="{{ site.lang | default: "en-US" }}">
+  <head>
+    <meta charset="UTF-8">
+
+{% seo %}
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link rel="preload" href="https://fonts.googleapis.com/css?family=Open+Sans:400,700&display=swap" as="style" type="text/css" crossorigin>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#241640">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="stylesheet" href="{{ '/assets/css/style.css?v=' | append: site.github.build_revision | relative_url }}">
+    {% include head-custom.html %}
+  </head>
+  <body>
+    <a id="skip-to-content" href="#content">Skip to the content.</a>
+
+    <header class="page-header" role="banner">
+      <svg class="header-bg" viewBox="0 0 1200 340" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+        <defs>
+          <linearGradient id="pg-bg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#241640"/>
+            <stop offset="0.55" stop-color="#2B2350"/>
+            <stop offset="1" stop-color="#123A34"/>
+          </linearGradient>
+          <radialGradient id="pg-glowP" cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0" stop-color="#6750A4" stop-opacity="0.75"/>
+            <stop offset="1" stop-color="#6750A4" stop-opacity="0"/>
+          </radialGradient>
+          <radialGradient id="pg-glowR" cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0" stop-color="#7D5260" stop-opacity="0.7"/>
+            <stop offset="1" stop-color="#7D5260" stop-opacity="0"/>
+          </radialGradient>
+          <radialGradient id="pg-glowG" cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0" stop-color="#4CAF50" stop-opacity="0.6"/>
+            <stop offset="1" stop-color="#4CAF50" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+        <rect width="1200" height="340" fill="url(#pg-bg)"/>
+        <circle cx="180" cy="80" r="260" fill="url(#pg-glowP)"/>
+        <circle cx="1040" cy="60" r="240" fill="url(#pg-glowR)"/>
+        <circle cx="720" cy="330" r="300" fill="url(#pg-glowG)"/>
+        <!-- abstract node-edge network — a nod to the graph/architecture domain -->
+        <g stroke="#EADDFF" stroke-opacity="0.18" stroke-width="1.5" fill="none">
+          <path d="M120,250 L300,120 L520,210 L760,90 L980,180 L1120,70"/>
+          <path d="M300,120 L360,300 L620,300 L520,210"/>
+          <path d="M760,90 L820,270 L980,180"/>
+          <path d="M520,210 L620,300"/>
+        </g>
+        <g fill="#EADDFF">
+          <circle cx="120" cy="250" r="5" fill-opacity="0.65"/>
+          <circle cx="300" cy="120" r="7" fill="#6750A4" fill-opacity="0.95"/>
+          <circle cx="520" cy="210" r="6" fill-opacity="0.6"/>
+          <circle cx="760" cy="90" r="7" fill="#4CAF50" fill-opacity="0.9"/>
+          <circle cx="980" cy="180" r="6" fill="#7D5260" fill-opacity="0.95"/>
+          <circle cx="1120" cy="70" r="5" fill-opacity="0.6"/>
+          <circle cx="360" cy="300" r="5" fill-opacity="0.5"/>
+          <circle cx="620" cy="300" r="6" fill-opacity="0.55"/>
+          <circle cx="820" cy="270" r="5" fill-opacity="0.5"/>
+        </g>
+      </svg>
+
+      <h1 class="project-name">{{ page.title | default: site.title | default: site.github.repository_name }}</h1>
+      <h2 class="project-tagline">{{ page.description | default: site.description | default: site.github.project_tagline }}</h2>
+      {% if site.github.is_project_page %}
+        <a href="{{ site.github.repository_url }}" class="btn">View on GitHub</a>
+      {% endif %}
+      {% if site.show_downloads %}
+        <a href="{{ site.github.zip_url }}" class="btn">Download .zip</a>
+        <a href="{{ site.github.tar_url }}" class="btn">Download .tar.gz</a>
+      {% endif %}
+      {% if site.nav %}
+      <nav class="project-nav" aria-label="Projects">
+        {% for item in site.nav %}
+        <a class="project-nav-link{% if page.url == item.url %} is-current{% endif %}" href="{{ item.url | relative_url }}">{{ item.title }}</a>
+        {% endfor %}
+      </nav>
+      {% endif %}
+    </header>
+
+    <main id="content" class="main-content" role="main">
+      {{ content }}
+
+      <footer class="site-footer">
+        {% if site.github.is_project_page %}
+          <span class="site-footer-owner"><a href="{{ site.github.repository_url }}">{{ site.github.repository_name }}</a> is maintained by <a href="{{ site.github.owner_url }}">{{ site.github.owner_name }}</a>.</span>
+        {% endif %}
+        <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a>.</span>
+      </footer>
+    </main>
+  </body>
+</html>
