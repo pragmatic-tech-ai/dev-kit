@@ -1,7 +1,9 @@
 <!-- Forked from pages-themes/cayman default.html to add (1) the animated
      knowledge-graph header banner and (2) a root project-navigation
-     strip below the header buttons. The {% include head-custom.html %} line is
-     preserved so the select-to-ticket feature keeps working. -->
+     strip below the header buttons. The head-custom.html include below is
+     preserved so the select-to-ticket feature keeps working.
+     (Do not write the include tag here: Liquid runs inside HTML comments, so
+     the expanded partial's own "-->" would close this comment early.) -->
 <!DOCTYPE html>
 <html lang="{{ site.lang | default: "en-US" }}">
   <head>
