@@ -1,0 +1,101 @@
+<!-- Select-to-ticket: on any docs page, select a span of text and press
+     Ctrl+Enter (Cmd+Enter on Mac) to open a prefilled, labeled GitHub issue
+     proposing that text for removal. No backend or secrets — it uses the
+     reader's own GitHub session on the prefilled new-issue page. -->
+<style>
+  #devkit-toast {
+    position: fixed;
+    left: 50%;
+    bottom: 24px;
+    transform: translateX(-50%);
+    max-width: 80vw;
+    padding: 10px 16px;
+    border-radius: 6px;
+    background: #24292f;
+    color: #fff;
+    font: 14px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+    z-index: 9999;
+  }
+  #devkit-toast.show { opacity: 1; }
+</style>
+<script
+  id="devkit-select-to-ticket"
+  data-repo="{{ site.repository }}"
+  data-label="{{ site.ticket_label }}">
+(function () {
+  var config = document.getElementById("devkit-select-to-ticket");
+  var repo = config.getAttribute("data-repo");
+  var label = config.getAttribute("data-label");
+  var MAX_QUOTE = 4000; // cap quoted text so the issue URL stays within limits
+
+  var toastEl = null;
+  var toastTimer = null;
+  function toast(message) {
+    if (!toastEl) {
+      toastEl = document.createElement("div");
+      toastEl.id = "devkit-toast";
+      document.body.appendChild(toastEl);
+    }
+    toastEl.textContent = message;
+    toastEl.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toastEl.classList.remove("show"); }, 2800);
+  }
+
+  // The nearest heading with an id at or before the selection start, for a deep link.
+  function nearestAnchor(selection) {
+    var node = selection.anchorNode;
+    if (!node) return "";
+    var el = node.nodeType === 1 ? node : node.parentElement;
+    if (!el) return "";
+    var headings = document.querySelectorAll("h1[id],h2[id],h3[id],h4[id],h5[id],h6[id]");
+    var best = "";
+    for (var i = 0; i < headings.length; i++) {
+      var pos = headings[i].compareDocumentPosition(el);
+      var precedes = pos & Node.DOCUMENT_POSITION_FOLLOWING; // el follows this heading
+      var inside = pos & Node.DOCUMENT_POSITION_CONTAINED_BY; // el is inside this heading
+      if (precedes || inside) best = headings[i].id;
+    }
+    return best;
+  }
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key !== "Enter" || !(e.ctrlKey || e.metaKey)) return;
+    var selection = window.getSelection();
+    var text = selection ? String(selection).trim() : "";
+    if (!text) {
+      toast("Select some text first, then press Ctrl+Enter.");
+      return;
+    }
+    e.preventDefault();
+
+    var truncated = text.length > MAX_QUOTE;
+    var quoted = truncated ? text.slice(0, MAX_QUOTE) + "\n…(truncated)…" : text;
+    var quoteBlock = quoted.split("\n").map(function (line) { return "> " + line; }).join("\n");
+
+    var anchor = nearestAnchor(selection);
+    var pageUrl = location.origin + location.pathname + (anchor ? "#" + anchor : "");
+    var pageTitle = document.title || location.pathname;
+
+    var snippet = text.replace(/\s+/g, " ").slice(0, 60);
+    var title = 'Remove text: "' + snippet + (text.length > 60 ? "…" : "") + '"';
+    var body =
+      "Flagged from the docs site for removal.\n\n" +
+      "**Page:** [" + pageTitle + "](" + pageUrl + ")\n\n" +
+      "**Text to remove:**\n\n" + quoteBlock + "\n";
+
+    var url =
+      "https://github.com/" + repo + "/issues/new" +
+      "?labels=" + encodeURIComponent(label) +
+      "&title=" + encodeURIComponent(title) +
+      "&body=" + encodeURIComponent(body);
+
+    window.open(url, "_blank", "noopener");
+    toast("Ticket draft opened in a new tab — submit it there.");
+  });
+})();
+</script>

@@ -2,6 +2,11 @@ title: Architecture Agentic Suite — Dev Kit
 description: Documentation hub for TODL, Mural, Fresco, and Plexus.
 theme: jekyll-theme-cayman
 
+# Select-to-ticket feature (docs/_includes/head-custom.html): where flagged text
+# opens a prefilled GitHub issue, and the label attached to it.
+repository: pragmatic-tech-ai/dev-kit
+ticket_label: docs-removal
+
 # The github-pages gem enables optional-front-matter, relative-links, and
 # titles-from-headings by default, so the migrated Markdown renders verbatim and
 # its `.md` cross-links are rewritten to page URLs. We only pin the layout so the
