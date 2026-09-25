@@ -1,0 +1,60 @@
+name: Process docs-removal tickets
+
+# Automated sibling of the on-demand `.claude/agents/docs-removal.md` agent: runs
+# Claude Code headless to clear the docs-removal backlog — remove the flagged text,
+# commit to main (which rebuilds Pages), and close each ticket.
+#
+# REQUIRES a repository secret `ANTHROPIC_API_KEY`. Until it is set, this workflow
+# fails fast and harmlessly; nothing else is affected. Set it with:
+#   gh secret set ANTHROPIC_API_KEY --repo pragmatic-tech-ai/dev-kit
+on:
+  # Fire as soon as a ticket is filed (the select-to-ticket UI applies the label).
+  issues:
+    types: [labeled]
+  # Manual run + a daily sweep as a safety net.
+  workflow_dispatch:
+  schedule:
+    - cron: "17 6 * * *"
+
+# Serialize: never let two runs push to main at once.
+concurrency:
+  group: docs-removal
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+    # On the issues event, only run for our label; other triggers always run.
+    if: >-
+      github.event_name != 'issues' ||
+      github.event.label.name == 'docs-removal'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure git identity
+        run: |
+          git config user.name "Eugene Napryaglo"
+          git config user.email "evgen.napryaglo@gmail.com"
+
+      - name: Run the docs-removal agent
+        uses: anthropics/claude-code-action@v1
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          prompt: >-
+            Read the file .claude/agents/docs-removal.md and follow its
+            instructions exactly to process every open docs-removal ticket:
+            remove the flagged text from the referenced page under docs/, commit
+            directly to main, push, and close each processed issue with a comment
+            linking the commit. Skip and comment on any ticket you cannot resolve
+            with confidence.
+          claude_args: >-
+            --allowedTools "Bash,Read,Edit,Grep,Glob"
+            --max-turns 40
