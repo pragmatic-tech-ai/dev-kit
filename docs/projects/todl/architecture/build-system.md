@@ -131,11 +131,104 @@ in a unit test that constructs the registry — rather than three actions deep i
 build, with a half-populated sandbox and a confusing "undefined" artifact to debug. It
 is the build system's equivalent of a compile-time type error for pipeline shape.
 
-`BuildFlavor<C>` (`build-flavor.ts`) is the thing a system's `Flavors()` returns: an id,
-a display name, an output directory name, and the ordered `Actions()` list itself.
-`StaticBuildFlavor` is the common case — a flavor whose action list is fixed at
-construction, which is what both TODL build systems use (each currently exposes exactly
-one flavor, matching its system id).
+### Build flavors: the selectable output variant
+
+A **build flavor** is the unit the consume-before-produce check above iterates over, and
+it is worth understanding on its own because it is what a build request actually selects.
+
+The design starts from a question: a single build system applies to a project type (via
+`AppliesTo`), but should it be able to produce that project in more than one shape? A
+library might build a normal publishable package, or a debug variant, or a
+documentation-only layout. Rather than force each variant to be its own top-level build
+system, the system exposes a list of **flavors**, and the caller picks one. A flavor owns
+exactly the two things that used to live directly on the system: the name of the output
+directory it writes to, and the ordered action pipeline that fills it.
+
+`BuildFlavor<C>` (`build-flavor.ts`) is that abstraction:
+
+```ts
+export interface BuildFlavor<C extends CoreBuildContext>
+{
+    readonly Id: string;
+    readonly DisplayName: string;
+    readonly OutputName: string;
+    Actions(): readonly IBuildAction<C>[];
+}
+```
+
+- `Id` is the stable selector a build request names to choose this flavor.
+- `DisplayName` is the human label (for a build-target picker in a UI).
+- `OutputName` is the output directory the manager opens and promotes the sandbox into —
+  so two flavors of one system land in two different output directories and never clobber
+  each other.
+- `Actions()` is the ordered pipeline itself, the same list the registry validates and the
+  manager runs.
+
+`IBuildSystem<C, TProject>` exposes them through a single method:
+
+```ts
+Flavors(): readonly BuildFlavor<C>[];
+```
+
+#### StaticBuildFlavor: the fixed-pipeline common case
+
+Most systems know their pipeline at construction time — they do not need to compute the
+action list dynamically. For them, `StaticBuildFlavor<C>` is a ready-made implementation
+that simply holds the four values and returns the action list it was given:
+
+```ts
+export class StaticBuildFlavor<C extends CoreBuildContext> implements BuildFlavor<C>
+{
+    constructor(
+        public readonly Id: string,
+        public readonly DisplayName: string,
+        public readonly OutputName: string,
+        private readonly actions: readonly IBuildAction<C>[],
+    ) {}
+
+    public Actions(): readonly IBuildAction<C>[]
+    {
+        return this.actions;
+    }
+}
+```
+
+A system with a single output wraps its one pipeline in a single `StaticBuildFlavor`. The
+`BuildFlavor` interface is nonetheless the seam that keeps the door open for a flavor that
+builds its action list on the fly, without changing anything that consumes flavors.
+
+#### How a flavor is selected, validated, and run
+
+Three consumers close the loop around a flavor, and they map one-to-one onto the three
+core types already described:
+
+1. **Selection.** A `ProjectBuildRequest` carries an optional `BuildFlavorId`.
+   `BuildSystemRegistry.SelectFlavor(system, flavorId?)` resolves it: the flavor whose
+   `Id` matches, or — when no id is given — the system's first flavor. That default is a
+   deliberate backward-compatibility affordance for callers that name only a build system
+   and expect its single flavor. It returns `undefined` when the id matches nothing (or
+   the system exposes no flavors), and `ProjectBuildManager.Build` turns that into an
+   `unknown build flavor:` error rather than silently building the wrong thing.
+2. **Validation.** The registry's consume-before-produce check runs **per flavor**, not
+   per system — each flavor's action list is validated independently at `Register` time,
+   because each is an independently runnable pipeline.
+3. **Execution.** `ProjectBuildManager.Run(flavor, request)` reads exactly two things off
+   the flavor: it calls `storage.OpenOutput(flavor.OutputName, options)` to open the
+   right output directory, and `flavor.Actions()` to get the pipeline it sequences,
+   checkpoints, and promotes. The manager never looks at the system again once the flavor
+   is chosen — the flavor is the complete description of what to build and where to put it.
+
+#### Where flavors stand today
+
+Both TODL build systems currently expose **exactly one** flavor each — `npm-package` and
+`html-bundle` — whose `Id` and `OutputName` match the system id. The multi-flavor
+capability is a designed-in extension seam, not yet exercised by a second variant, and
+the `build-flavor.test.ts` suite pins both the `StaticBuildFlavor` value contract and the
+"each built-in system exposes a single, non-empty-pipeline flavor" invariant. The type
+and `StaticBuildFlavor` were introduced in commit `a623b50` ("feat(build): add BuildFlavor
++ StaticBuildFlavor, expose Flavors() on systems") as part of the build-system spec, which
+generalized the earlier design where a system carried its output name and pipeline
+directly.
 
 ### The manager: sequencing, diagnostics, and promotion
 
