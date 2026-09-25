@@ -49,7 +49,7 @@ chrome); property inheritance / `FindName` / resources walk the logical
 tree (skipping template internals, going straight from Content to its
 ContentControl ancestor).
 
-## 2. `ControlTemplate`
+## 2. ControlTemplate
 
 Mural uses an imperative-factory template form. A `ControlTemplate`
 wraps a function `(templatedParent: Visual) => Visual` that constructs
@@ -98,7 +98,7 @@ interface TemplateInstance {
 ContentControl owns the apply call — consumers normally never call
 `Apply` directly.
 
-## 3. `ContentPresenter`
+## 3. ContentPresenter
 
 A Visual whose `visualChild` is the templated control's slotted
 content. Its `logicalChildren` is intentionally empty — the content
@@ -120,7 +120,7 @@ return border;
 `SetContent` is the wiring point — only ContentControl calls it.
 Measure / Arrange delegate to the slotted content.
 
-## 4. `ContentControl`
+## 4. ContentControl
 
 ```ts
 import { ContentControl } from '../basic/index.js';
@@ -151,7 +151,7 @@ cc.Template = templateB;     // textBlock now visually under presenterB
 assert.equal(cc.Content, textBlock);    // same instance
 ```
 
-### `GetTemplateChild`
+### GetTemplateChild
 
 WPF parity — look up a named template part within the applied
 template's `NameScope`.
@@ -170,7 +170,7 @@ const bg = cc.GetTemplateChild('PART_Background');   // → the Border
 Returns undefined if no template applied or no Visual with that name in
 the template.
 
-## 5. `TemplateBinding`
+## 5. TemplateBinding
 
 A convenience that creates a `Binding` whose source is the
 `templatedParent`. Bind a template-internal property to a property on
@@ -198,7 +198,7 @@ Under the hood: just `new Binding(templatedParent, path, OneWay)`. The
 factory captures `tp` (the templatedParent argument), so the resulting
 binding tracks the right control.
 
-## 6. `TemplatedParent` back-pointer
+## 6. TemplatedParent back-pointer
 
 Every Visual gets a `templatedParent` accessor (and `SetTemplatedParent`
 setter). Stamped by `ControlTemplate.Apply` on every node in a
@@ -239,7 +239,7 @@ So a `Foreground` set on the consumer's `Window` flows down through
 the ContentControl into the template-internal `TextBlock` that
 displays the Content's text.
 
-## 8. NameScope + `FindName`
+## 8. NameScope + FindName
 
 Each `ControlTemplate.Apply` creates a per-instance `NameScope`,
 attached to the template root. Every Visual whose `.Name` was set in

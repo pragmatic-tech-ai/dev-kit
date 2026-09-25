@@ -61,7 +61,7 @@ surfaces happens through `Style` and `ResourceDictionary` keyed
 resources — the standard mechanisms — not through a special
 command-metadata layer.
 
-## 2. `ICommand` (shipping)
+## 2. ICommand (shipping)
 
 The existing primitive in [runtime/command.ts](https://github.com/pragmatic-tech-ai/mural/blob/main/src/runtime/command.ts).
 
@@ -80,7 +80,7 @@ an optional `canExecute` predicate, and a `RaiseCanExecuteChanged()`
 the VM calls when its world changes. Surface controls subscribe to
 `CanExecuteChanged` to auto-disable.
 
-## 3. `ICommandSource` (shipping)
+## 3. ICommandSource (shipping)
 
 A contract every command invoker implements. Three DPs:
 
@@ -106,7 +106,7 @@ appears disabled (low alpha, no hover/press states, click ignored).
 Driven by `CanExecuteChanged` — every invoker subscribes when
 `Command` is set, unsubscribes when it clears.
 
-## 4. `InputBindings` (shipping)
+## 4. InputBindings (shipping)
 
 Per-`Visual` collection of gesture-to-command mappings:
 
@@ -223,7 +223,7 @@ items render in a vertical popup; submenus fly out to the right.
 - `ContextMenu` — `Menu` variant that positions at the cursor; opens
   on right-click on any Visual that sets `ContextMenu` attached DP.
 
-### Template parts inside `MenuItem`
+### Template parts inside MenuItem
 
 The row layout is a 4-column grid:
 
@@ -414,7 +414,7 @@ MenuItem      [Icon=@deleteIcon, Header=@deleteText, Command=$DeleteCmd,
 RibbonButton  [LargeIcon=@deleteIcon, Text=@deleteText, Command=$DeleteCmd]
 ```
 
-## 9. Demo plan — `commands`
+## 9. Demo plan — commands
 
 Dedicated demo exercising the three surfaces over a shared command set.
 Reuses the existing Diagram model from the diagram demo so the visual

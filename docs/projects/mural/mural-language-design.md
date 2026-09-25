@@ -109,7 +109,7 @@ Whitespace separates items inside body groups `{…}`. Commas separate inside at
 
 `\` is the universal escape character — inside string literals and inside content groups where literal `$`, `#`, `@`, `{`, `}`, `\` are needed. The backslash itself is otherwise unclaimed (it is **not** a command sigil).
 
-## 3. The one skeleton — `Name[attrs]{body}`
+## 3. The one skeleton — Name[attrs]{body}
 
 Every element-shaped invocation has the same shape. The casing of `Name` decides the part of speech:
 
@@ -216,7 +216,7 @@ datatemplate[x:key="PersonRow", datatype=Person]{ … }          // keyed
 
 The resource-form skeleton is *literally identical* to a regular element invocation. The only thing distinguishing `datatemplate[…]{…}` from `Border[…]{…}` is the keyword's casing — lowercase form vs. PascalCase control. No special-case form grammar.
 
-### 7.1 SetterList (inside `style`)
+### 7.1 SetterList (inside style)
 
 ```
 SetterList     ::= SetterItem*
@@ -250,7 +250,7 @@ TriggerTerm ::= "not"? Ident ("=" Value)? | "(" TriggerExpr ")"
 
 Bare `IsMouseOver` means `IsMouseOver = true`; `not IsEnabled` means `IsEnabled = false`; explicit `Status = "active"` is allowed. `and`/`or`/`not` are lowercase keyword tokens; precedence: `not` > `and` > `or`.
 
-## 8. Scope extensions — the `x:` mechanism
+## 8. Scope extensions — the x: mechanism
 
 ### 8.1 The mechanism
 
@@ -315,7 +315,7 @@ Closed table; grows as the runtime gains new scope-providing elements.
 
 Additional advertisements (e.g. `index` on `ItemsControl`, `cell` on `Grid` as an alternative to attached `Grid.Row`/`Grid.Column`) are future possibilities that fit the mechanism without grammar changes.
 
-## 9. Resources and `Application`
+## 9. Resources and Application
 
 ### 9.1 Every element has a Resources slot
 
@@ -333,7 +333,7 @@ Border[…]{
 
 The `resources:` SlotAssign's body is the dictionary's contents. Children of that block can use `x:key` because the `ResourceDictionary` instance pushes its scope frame; children of the outer `Border` (outside `resources:`) cannot.
 
-### 9.2 `Application` is the root element
+### 9.2 Application is the root element
 
 ```ts
 class Application extends Element {
@@ -705,7 +705,7 @@ The grammar is LL(1) except for `BodyContent`, where the dispatch between `Strin
 
 These have not been pronounced on yet; the spec is consistent with either resolution.
 
-### 13.1 Implicit `Application` wrapper at file root
+### 13.1 Implicit Application wrapper at file root
 
 When the outermost form of a `.mu` file is a SlotAssign (`resources:` or `MainWindow:`) or a bare resource form, wrap implicitly in `Application{…}`. Reduces boilerplate for app-spec files; matches XAML's `App.xaml` ergonomics. Vote: yes, for ergonomics.
 
@@ -728,7 +728,7 @@ import @themeBase from "themes/base.mu"
 
 Both can coexist. Default vote: A as primary; B as a file-level convenience that lowers to the same calls.
 
-### 13.3 Extension contract — `parse`-only vs `apply`-bearing
+### 13.3 Extension contract — parse-only vs apply-bearing
 
 The `KeyExtension.apply` is trivially `rd.Set(key, child)`. Whether the extension owns that line or the bind pass does it directly is a style call:
 
@@ -741,7 +741,7 @@ The spec above uses `apply`-bearing for uniformity. Switching to `parse`-only is
 
 A macro named `Card` and a control named `Card` (both at the same site of resolution) — does the macro win, does this raise a static error, or are macros and controls in separate namespaces? Current spec: macro shadows. Likely better: error on collision.
 
-### 13.5 `BasedOn` for style composition
+### 13.5 BasedOn for style composition
 
 XAML's `Style.BasedOn` lets one Style inherit setters from another. Whether µ-mural exposes this as `style[basedon=@parent, …]{…}` (probably yes) and how it interacts with implicit vs explicit keys is a future-work decision.
 

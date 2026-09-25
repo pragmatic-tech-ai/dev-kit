@@ -26,7 +26,7 @@ AdornerLayer     — Panel-like host for Adorners, lives inside the visual tree
 AdornerDecorator — Single-child wrapper that provides an AdornerLayer for its subtree
 ```
 
-### `Adorner`
+### Adorner
 
 Abstract `Visual`. Constructed with a non-null `AdornedElement: Visual`. Subclasses override `Placement(adornedRect, desiredSize): Rect` to compute where they paint relative to the adorned element's rect (which the layer hands them, already converted to the layer's local frame), and `RenderOverride(dc)` to draw.
 
@@ -45,7 +45,7 @@ class BoundsAdorner extends Adorner {
 
 `AdornedElement` is a readonly ctor arg, not a DP — adorners don't re-target after construction. Make a new adorner instead.
 
-### `AdornerLayer`
+### AdornerLayer
 
 `extends Panel`. `Add(adorner)` / `Remove(adorner)` / `GetAdorners(adornedElement): readonly Adorner[] | undefined`. Sized to its parent's slot. Arranged so each adorner sits at the rect its `Placement` returned, with the adorned element's position pre-computed in the layer's **local frame** (see § 5).
 
@@ -55,7 +55,7 @@ Static lookups:
 - **`GetAdornerLayer(visual): AdornerLayer | undefined`** — walks UP from `visual` and returns the first ancestor that exposes an `AdornerLayer` property of the right type. Duck-typed (`(cur as { AdornerLayer?: unknown }).AdornerLayer`) so providers in `basic/` (the `ScrollContentPresenter`) don't force a runtime → basic dependency. Returns `undefined` when no ancestor provides one; callers either short-circuit or fall back to an imperative overlay.
 - **`FindFirstInSubtree(root): AdornerLayer | undefined`** — DFS the subtree from `root`. For top-level hosts (`HtmlTarget`) that need to drop an adornment without an in-tree anchor — the outermost `AdornerDecorator` typically wraps the app root, so the DFS finds it on the first hit.
 
-### `AdornerDecorator`
+### AdornerDecorator
 
 `extends Single` — the µ-mural analog of WPF `Decorator`. Holds one `Child` and one internal `AdornerLayer`. `visualChildren` returns `[child, layer]` (layer painted on top); `logicalChildren` returns `[child]` so resources / DataContext don't flow into the layer.
 
@@ -95,7 +95,7 @@ The two questions a layer placement answers:
 
 The mural platform demo wraps its root in `AdornerDecorator` ([demo/platform/platform.mu](demo/platform/platform.mu)) — that's the OUTER layer. `ScrollContentPresenter` provides the INNER layer automatically.
 
-### Why not just put a layer inside `ScrollViewer.Content`?
+### Why not just put a layer inside ScrollViewer.Content?
 
 You can — that's exactly what `ScrollContentPresenter` does, but it owns the layer directly rather than nesting an `AdornerDecorator` inside its content. The reason is logical-tree ownership: `ContentControl` owns the consumer's content logically. Wrapping it in an `AdornerDecorator` would change which element is the logical parent, breaking DataContext flow, resource lookup, and any binding ancestor walk. So SCP attaches the layer as a **sibling** visual child of its content (the layer is a visual-only attach), arranges it at the same rect, and gets the same outcome: lookups from inside the scrolled subtree find the SCP's layer first because of the duck-typed `AdornerLayer` getter on SCP.
 
@@ -245,13 +245,13 @@ AdornerDecorator <g>            pointer-events: <none on outer or pad>
 
 ## 7. The built-in adorner roster
 
-### `DragGhostAdorner` — [src/runtime/adorner.ts](src/runtime/adorner.ts)
+### DragGhostAdorner — [src/runtime/adorner.ts](src/runtime/adorner.ts)
 
 Cursor-anchored adorner used by `HtmlTarget` to host the drag preview when the visual tree contains an `AdornerDecorator`. `SetPosition(x, y)` pins the ghost in the layer's local frame; `SetContent(visual)` hosts a DataTemplate-derived preview (mode C in [src/visual-engine/targets/html-target.ts](src/visual-engine/targets/html-target.ts)) or stays empty (mode A — HtmlTarget appends a manually-cloned source `<g>` into the adorner's outer after Flush).
 
 `IsHitTestVisible = false` so the ghost doesn't intercept the drag-over dispatch the receiver is waiting for.
 
-### `ReorderInsertionAdorner` — [src/basic/behaviors/list-reorder-behavior.ts](src/basic/behaviors/list-reorder-behavior.ts)
+### ReorderInsertionAdorner — [src/basic/behaviors/list-reorder-behavior.ts](src/basic/behaviors/list-reorder-behavior.ts)
 
 Internal adorner the `ListReorderBehavior` instantiates when an `InsertionAdornerTemplate` is set and a reorderable drag is in progress. Hosts a Canvas wrapper that contains the user-supplied template's produced Visual; the behavior writes `Canvas.SetLeft / SetTop` in **layer-local** coords on the wrapper so the line lands at the right gap.
 
@@ -259,7 +259,7 @@ Adornment target is the host `ItemsControl`. `Placement` returns the full layer 
 
 When the host's tree contains an AdornerLayer (typical case: the SCP's inner layer for a virtualized ListBox), the line **rides the scrolled subtree's translate** — it stays glued to its gap as auto-scroll fires, no DragOver re-fire heuristic needed. Falls back to the imperative `PresentationTarget.AttachOverlay` path on hosts not under any AdornerLayer.
 
-### `ValidationErrorAdorner` — [src/basic/validation-error-adorner.ts](src/basic/validation-error-adorner.ts)
+### ValidationErrorAdorner — [src/basic/validation-error-adorner.ts](src/basic/validation-error-adorner.ts)
 
 Reactive adorner that paints a red rectangle around the adorned element when `Validation.GetHasError(target)` is true. Subscribes to the adorned element's `Validation.HasErrorKey` change notifications via `AddPropertyChangedListener`; `InvalidateVisual` on every flip flows through the standard repaint loop.
 

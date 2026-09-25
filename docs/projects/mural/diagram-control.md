@@ -94,7 +94,7 @@ barrel.
 
 ## 3. Type sketches
 
-### 3.1 `IFigure` / `IGroup` — the duck-typed contracts
+### 3.1 IFigure / IGroup — the duck-typed contracts
 
 Framework operations (align, distribute, group, ungroup, combine,
 bbox tracking) read these shapes from the items in
@@ -142,7 +142,7 @@ extend the demo-side `ShapeNodeVM`-style class without that becoming
 a framework dependency — the framework operations type-check on the
 interface, not on any specific class.
 
-### 3.2 `Figure` control — promoted from `DiagramNode`
+### 3.2 Figure control — promoted from DiagramNode
 
 Today's [diagram-node.ts](https://github.com/pragmatic-tech-ai/mural/blob/main/src/framework/diagram/diagram-node.ts) is
 already 95% of the desired shape: ContentControl with X / Y DPs,
@@ -178,7 +178,7 @@ alias for one release window after the rename so the
 `commands`-demo's `import { DiagramNode }` paths don't break
 mid-refactor. Alias removed in Phase N.
 
-### 3.3 `Group` control — new
+### 3.3 Group control — new
 
 Like `ListBoxItem` for the diagram surface. A container that wraps a
 set of grouped Figures (and nested Groups), renders shared chrome
@@ -226,7 +226,7 @@ The "elevation" rule (clicking a member → selects the topmost Group
 ancestor) is implemented separately by `ElevationSelectionBehavior`
 (§ 3.7) so consumers without grouping needs don't pay for the walk.
 
-### 3.4 `Diagram` changes — the kitchen-sink surface
+### 3.4 Diagram changes — the kitchen-sink surface
 
 ```ts
 export class Diagram extends Selector {
@@ -285,7 +285,7 @@ constructor() {
 }
 ```
 
-### 3.5 `DiagramCommands` collaborator
+### 3.5 DiagramCommands collaborator
 
 Owns the 14 command implementations + their CanExecute predicates.
 Constructed with a back-ref to the Diagram so it can read
@@ -326,7 +326,7 @@ The command implementations are pure functions in
 operating on `IFigure[]`. Same math as today's `DiagramVM.AlignLeft()`
 etc., extracted from the kitchen-sink VM into pure helpers.
 
-### 3.6 `SelectionBoundsTracker` collaborator
+### 3.6 SelectionBoundsTracker collaborator
 
 Subscribes to `Diagram.SelectionChanged` and to each selected item's
 `Left` / `Top` / `Width` / `Height` PropertyChanged. Recomputes
@@ -377,7 +377,7 @@ export class SelectionBoundsTracker {
 of `Left` / `Top` / `Width` / `Height` / `IsSelected` as DPs (or own
 properties on Model).
 
-### 3.7 `FormatMirror` collaborator
+### 3.7 FormatMirror collaborator
 
 Seeds `Diagram.SelectionFormatFill` / `SelectionFormatStroke` from the
 first selected item's Fill / Stroke on selection change; broadcasts
@@ -393,7 +393,7 @@ Duck-types on a `IFillable { Fill: Brush }` / `IStrokable {
 Stroke: Pen }` interface so consumers whose VMs don't have a
 fill/stroke skip the broadcast silently.
 
-### 3.8 `ElevationSelectionBehavior`
+### 3.8 ElevationSelectionBehavior
 
 The "clicking any entity walks the Parent chain to the topmost
 ancestor and only THAT becomes IsSelected=true" rule. Promoted from
@@ -485,7 +485,7 @@ individual commits get big (e.g., D might split into "align-left
 only" → "remaining 4 align commands" if the pure-function extraction
 is gnarlier than expected).
 
-## 5. Consumer migration — what `commands` demo loses
+## 5. Consumer migration — what commands demo loses
 
 The `commands` demo today does three things with `DiagramVM` /
 `ShapeNodeVM` that need rewriting at Phase M:
@@ -531,7 +531,7 @@ Per-phase test files listed in § 4. Cross-cutting fixtures + tests:
 
 ## 7. Open questions
 
-### 7.1. Where does `Diagram._setCommandDefault()` come from?
+### 7.1. Where does Diagram._setCommandDefault() come from?
 
 The Diagram's Command DPs need a "default writer" path that
 `DiagramCommands` uses at construction, and a "consumer override"
@@ -552,7 +552,7 @@ Recommendation: **(a)** for simplicity. The Diagram constructor
 runs before any consumer code that might override, so the
 last-writer-wins ordering naturally produces the right result.
 
-### 7.2. `Group` selection chrome — fixed template vs configurable?
+### 7.2. Group selection chrome — fixed template vs configurable?
 
 Today's `GroupVM` bbox visual is a dashed border defined inline in
 the diagram demo's markup. The framework `Group` ships a default
@@ -564,7 +564,7 @@ Recommendation: `Group.Template` is a normal `ControlTemplate` DP
 with a sensible default. Consumers override via Style or
 DataTemplate just like any other Control. No special API surface.
 
-### 7.3. `SelectionBoundsTracker` subscription cost
+### 7.3. SelectionBoundsTracker subscription cost
 
 For a 100-node selection, the tracker installs 4 PropertyChanged
 listeners × 100 items = 400 listeners. Each node drag fires
@@ -585,7 +585,7 @@ Recommendation: ship free-form first (matches today's demo
 behavior); add Shift-constrains-uniform as a follow-up that's
 purely additive (one modifier check in the adorner's PointerMove).
 
-### 7.5. Should `Diagram` expose `IFigure`-typed `SelectedFigures` separately from `SelectedItems`?
+### 7.5. Should Diagram expose IFigure-typed SelectedFigures separately from SelectedItems?
 
 `Selector.SelectedItems` returns `unknown[]`. Most diagram
 operations want `IFigure[]`. Options:

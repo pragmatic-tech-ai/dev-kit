@@ -66,7 +66,7 @@ uses this to size its content.
 `LoadFont` is sync — parsing a font from a buffer doesn't require network
 or I/O. Async font *fetching* is the caller's concern.
 
-## 3. `ApproximateTextMeasurer`
+## 3. ApproximateTextMeasurer
 
 The stateless default. No font files, no real metrics — just consistent
 heuristics calibrated to typical sans-serif proportions:
@@ -113,7 +113,7 @@ public TextMeasurer: TextMeasurer = APPROXIMATE_TEXT_MEASURER;
 - Pixel-perfect headless rendering for screenshots, image comparison,
   documentation snapshots.
 
-## 4. `FontMetricsMeasurer`
+## 4. FontMetricsMeasurer
 
 Real per-glyph widths + ascent / descent / kerning, backed by opentype.js.
 Works in both Node and browser — opentype.js parses TTF / OTF / WOFF1
@@ -287,7 +287,7 @@ await loadGoogleFontInto(target.TextMeasurer, 'Inter', { weights: [400, 700] });
 // (target.LoadFont is a convenience method that delegates to TextMeasurer.LoadFont)
 ```
 
-## 7. `FormattedText` and renderer-side metrics
+## 7. FormattedText and renderer-side metrics
 
 `TextBlock.MeasureOverride` stores the `TextMetrics` it got from the measurer
 into `_metrics`, then passes it through `FormattedText` to the renderer:

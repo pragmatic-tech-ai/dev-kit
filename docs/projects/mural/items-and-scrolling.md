@@ -30,7 +30,7 @@ See also: [templating.md](templating.md) for `ContentControl` /
 `ContentPresenter` (the single-content analogue of ItemsControl /
 ItemsPresenter).
 
-## 1. `ObservableCollection<T>`
+## 1. ObservableCollection<T>
 
 Live-updating list with per-mutation change notifications. The high-
 level UI layer (`ItemsControl`) reacts to these incrementally — adding
@@ -71,7 +71,7 @@ shape minus the mutators. Used as the public type when a container owns
 the collection and routes mutation through its own API. `Panel.Children`
 is the prime example.
 
-## 2. `Panel.Children` is observable
+## 2. Panel.Children is observable
 
 ```ts
 const panel = new MyPanel();
@@ -91,7 +91,7 @@ subscription. `visualChildren` and `logicalChildren` continue to return
 `readonly Visual[]` snapshots (materialized lazily, invalidated by an
 internal subscription).
 
-## 3. `DataTemplate`
+## 3. DataTemplate
 
 A factory that turns one data item into a Visual:
 
@@ -110,7 +110,7 @@ Data is `unknown` — the factory knows what shape it expects. No
 DataTypeSelector (which template for which type) in this cut; a single
 template per `ItemsControl`.
 
-### Template triggers — `when()` and `on Event { … }`
+### Template triggers — when() and on Event { … }
 
 A `DataTemplate` carries three trigger lists, all attached to the
 freshly-built root on every `Apply`:
@@ -144,7 +144,7 @@ time the template root receives the trigger via
 templates and warns-and-no-ops for visuals that don't expose that
 hook).
 
-## 4. `ItemsControl`
+## 4. ItemsControl
 
 ```ts
 import { ItemsControl, DataTemplate } from '../basic/index.js';
@@ -181,7 +181,7 @@ and dispatches per-mutation:
 Other already-realized containers are preserved across mutations — same
 Visual instances, no rebuild churn.
 
-## 5. `ItemContainerGenerator`
+## 5. ItemContainerGenerator
 
 Bridge between items and containers. Owned by the ItemsControl,
 exposed via `ic.Generator`.
@@ -199,7 +199,7 @@ Virtualizing panels use the generator to realize / recycle on demand
 based on viewport. The default non-virtualizing flow realizes
 everything once and recycles in lockstep with collection changes.
 
-## 6. `ItemsPresenter` + `Template`
+## 6. ItemsPresenter + Template
 
 ItemsControl gets an optional `Template: ControlTemplate` that wraps
 the items panel in surrounding chrome (header, footer, scrollbar). The
@@ -229,7 +229,7 @@ For long lists, allocating every container is wasteful. A
 `VirtualizingPanel` realizes containers only for items currently
 visible and recycles those that leave.
 
-### `VirtualizingPanel` (abstract base)
+### VirtualizingPanel (abstract base)
 
 The marker. When the ItemsControl's `ItemsPanel` factory produces a
 `VirtualizingPanel` subclass, ItemsControl skips its bulk realization
@@ -237,7 +237,7 @@ and hands the panel a back-pointer (`SetItemsOwner`). The panel then
 decides when to realize / recycle by calling `owner.Generator.Realize`
 / `Recycle`.
 
-### `VirtualizingStackPanel`
+### VirtualizingStackPanel
 
 Concrete implementation. Vertical stack with uniform item height.
 Properties:
@@ -263,7 +263,7 @@ a host ScrollViewer knows the scrollable range).
 `RealizedIndices` is a read-only view of currently-live indices for
 tests / tooling.
 
-## 8. `IScrollInfo`
+## 8. IScrollInfo
 
 Contract exposed by panels that handle their own scrolling extent —
 typically VirtualizingStackPanel:
@@ -286,7 +286,7 @@ itemCount × ItemHeight, ViewportWidth/Height mirrors Viewport.W/H,
 offsets mirror Viewport.X/Y. `isScrollInfo(v)` is a duck-type guard
 (checks for `SetHorizontalOffset` / `SetVerticalOffset` methods).
 
-## 9. `ScrollViewer`
+## 9. ScrollViewer
 
 ```ts
 import { ScrollViewer } from '../basic/index.js';
@@ -339,7 +339,7 @@ queryable. The effective offset (clamped to `[0, ScrollableWidth]` /
 ArrangeOverride. Out-of-range writes snap into range as soon as the
 extent permits.
 
-## 10. `Visual.Clip`
+## 10. Visual.Clip
 
 ScrollViewer's clip-and-translate mode uses a general clip
 mechanism. Any Visual can set `.Clip` to a `RectangleGeometry` or

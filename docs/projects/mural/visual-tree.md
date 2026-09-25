@@ -201,7 +201,7 @@ target1.Content = undefined;
 target2.Content = visual;
 ```
 
-## 6. `VisualHost` interface
+## 6. VisualHost interface
 
 The contract a host must satisfy. `PresentationTarget` is the only public
 implementation, but Visual itself only sees the four methods on the interface.
@@ -301,7 +301,7 @@ Templated containers (`ContentControl`, `ItemsControl`) do exactly that
 `visualChildren` returns template-generated visuals; their
 `logicalChildren` returns consumer-supplied content.
 
-## 10. `TemplatedParent` — third back-pointer
+## 10. TemplatedParent — third back-pointer
 
 Every Visual carries a third reference alongside the two parent links:
 
@@ -330,7 +330,7 @@ User-supplied content (slotted into a `ContentPresenter` /
 `ItemsPresenter`) does NOT have `templatedParent` set — only template-
 generated visuals do.
 
-## 11. `Name` + `FindName` — named-element scoping
+## 11. Name + FindName — named-element scoping
 
 `Visual.Name: string | undefined` is the x:Name analogue. Set on a
 Visual to make it locatable by name within an enclosing `NameScope`.
@@ -351,7 +351,7 @@ For consumers, the typical entry point is
 part within the applied template's scope. Full story in
 [templating.md](templating.md).
 
-## 12. `Clip` — render-time clipping
+## 12. Clip — render-time clipping
 
 `Visual.Clip: unknown | undefined` holds an optional Geometry. The
 renderer pushes the clip via `DC.PushClip` before RenderOverride and
@@ -371,7 +371,7 @@ Supported shapes (in `SvgDrawingContext`): `RectangleGeometry`,
 `EllipseGeometry`. Path / line / group geometries throw — a clip
 needs an enclosed region.
 
-## 13. What lives on `Visual`
+## 13. What lives on Visual
 
 A quick map of what comes from each base class — for reference when reading
 the source.

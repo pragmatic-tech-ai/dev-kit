@@ -155,7 +155,7 @@ Marquee writes through the same plumbing the click-handler does:
    point at the first selected container (in `containerOrderForRange()`
    order). Marquee triggers this after each move sample.
 
-## 6. Batching with `BeginUpdate` / `EndUpdate`
+## 6. Batching with BeginUpdate / EndUpdate
 
 A move sample can flip dozens of `IsSelected` attached values when the
 rect crosses several rows. Firing `SelectionChanged` per flip would

@@ -82,7 +82,7 @@ class Rectangle extends Visual {
 }
 ```
 
-### What `Visual.Measure` does for you
+### What Visual.Measure does for you
 
 Before calling `MeasureOverride`, the framework:
 
@@ -131,7 +131,7 @@ The rect handed to each child is in the **parent's local coordinate space**
 pushes a translate for each child based on `child.ArrangedRect.{X, Y}` so
 the child draws in its own (0, 0).
 
-### What `Visual.Arrange` does for you
+### What Visual.Arrange does for you
 
 Before calling `ArrangeOverride`, the framework:
 
@@ -230,7 +230,7 @@ Property-to-invalidation routing:
 Combine flags with `|`: a property that affects both layout and rendering
 uses `MetaData.Measure | MetaData.Render`.
 
-### `PresentationTarget.Flush` — convergence loop
+### PresentationTarget.Flush — convergence loop
 
 `Flush` runs a measure + arrange pass on the host's `Content` (and on
 the overlay layer if attached). Cross-Visual coupling — `Grid`'s

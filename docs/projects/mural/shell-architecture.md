@@ -60,7 +60,7 @@ services, bind regions.
 | `EditorShell` (`editor-shell.ts`) | Full editing chrome — header, commands, nav rail, left pane, inspector, status, content. |
 | `ViewerShell` (`viewer-shell.ts`) | Read-only subset — header, nav, content. |
 
-### `ShellBase` — the DI seam
+### ShellBase — the DI seam
 
 `ShellBase.Services` is a **child scope** of `Application.current.Services`,
 created lazily. Creating it also *publishes* it as the element's `ServiceScope`,
@@ -79,7 +79,7 @@ public get Services(): ServiceProvider {
 }
 ```
 
-### Region → DockPanel map (`shell.template.mu`, `@DefaultEditorShell`)
+### Region → DockPanel map (shell.template.mu, @DefaultEditorShell)
 
 Regions are docked one edge at a time in child order; `PART_ContentHost` is
 last so `LastChildFill` hands it the remaining rectangle.
@@ -158,7 +158,7 @@ has(token) → boolean                  createScope() → ServiceProvider
 dispose()
 ```
 
-### `$service(...)` bindings
+### $service(...) bindings
 
 `$service(Token)` in markup lowers to
 `ServiceBinding(target, ServiceProvider.tokenFor(Token), "path")`. It resolves
@@ -170,7 +170,7 @@ changes.
 
 ---
 
-## 4. `ServiceBase` — services that are view-models
+## 4. ServiceBase — services that are view-models
 
 `src/runtime/services/service-base.ts`
 
@@ -232,7 +232,7 @@ must not depend on framework. Resolved with structural contracts in runtime —
 `Application.Modules` is typed `IShellModule[]`; `NavigationService` up-casts to
 the concrete `Capability` to read the view-facing `Icon` / `ServiceKey`.
 
-### Composition (`Application.Modules.Add`)
+### Composition (Application.Modules.Add)
 
 On any `Modules` change the `Application`:
 
@@ -248,7 +248,7 @@ On any `Modules` change the `Application`:
 
 `src/framework/shell/services/`
 
-### `NavigationService`
+### NavigationService
 
 Backs the nav rail. `Items` (destinations), `SelectedItem`, and the **derived
 `ActiveService`**:
@@ -263,7 +263,7 @@ The left pane binds `$service(NavigationService).ActiveService`, so selecting a
 rail item swaps the panel to that capability's service (rendered by its
 DataTemplate).
 
-### `ContentHostService`
+### ContentHostService
 
 Backs the main content region (`PART_ContentHost`). A thin presenter:
 
@@ -274,7 +274,7 @@ get Content(): unknown            // read-only to the view
 
 Anything resolves it and calls `View(x)` to swap what the shell shows.
 
-### `DocumentsContentHostService extends ContentHostService`
+### DocumentsContentHostService extends ContentHostService
 
 A workspace of open documents (tabbed-document / TDI shape). Register under
 `ContentHostService.Key` to drive the region with documents.
@@ -290,7 +290,7 @@ Save(doc?)  // delegates to (doc ?? ActiveDocument).Save() — the host owns
             //   lifecycle, the document owns IO
 ```
 
-### `DocumentSelectorService`
+### DocumentSelectorService
 
 A selectable list — the *selector* half of a workspace. Concrete (usable as-is)
 but commonly subclassed. **No `Key`** — it's a base subclassed into many
@@ -307,7 +307,7 @@ protected OnSelectedItemChanged(item) {          // default behaviour:
 Override `OnSelectedItemChanged` for richer behaviour (open into a documents
 host, guards, history).
 
-### `StatusService` / `InspectorService`
+### StatusService / InspectorService
 
 Thin region VMs. `StatusService`: `Text`, `IsBusy`. `InspectorService`:
 `Target` (the inspected object; `undefined` → empty state).

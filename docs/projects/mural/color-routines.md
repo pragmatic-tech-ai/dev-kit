@@ -39,7 +39,7 @@ adding statics to `Color`).
 
 ---
 
-## 2. The `Color` runtime type
+## 2. The Color runtime type
 
 `Color` (`src/visual-engine/primitives.ts`) is an immutable RGBA value, each
 channel `0..255`:
@@ -61,7 +61,7 @@ public, so you can call them directly in code or in a custom modifier.
 
 ---
 
-## 3. Color modifiers — the `<<` pipe
+## 3. Color modifiers — the << pipe
 
 `<<` is mural's converter-pipe operator (a value run through one or more
 `ValueConverter`s, composing left-to-right). Color modifiers are converters

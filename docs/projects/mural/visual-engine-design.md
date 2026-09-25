@@ -89,7 +89,7 @@ Design points:
 
 Trade-off acknowledged: one PresentationTarget observed by multiple renderers (render the same scene to screen + PDF simultaneously) is not supported in this design. The path back if we need it: extract a `Scene` Model holding Content/Background/Width/Height, have PresentationTargets reference a Scene instead of carrying those properties directly. Defer until something concretely asks for it.
 
-## 4. `Visual.OnRender`
+## 4. Visual.OnRender
 
 ```ts
 abstract class Visual extends Model
@@ -108,7 +108,7 @@ Lifecycle:
 - `OnRender` is cheap and called only when dirty. Property changes with `MetaData.Render` (or `Measure | Render`) already trigger `MarkRenderDirty` via the existing hook routing in `Visual.OnPropertyChanged`.
 - Children are walked by the renderer, not by the parent's `OnRender`. There is no `dc.DrawChild(child)` — composition is not a draw primitive.
 
-## 5. `DrawingContext`
+## 5. DrawingContext
 
 ```ts
 interface DrawingContext
@@ -198,7 +198,7 @@ PathGeometry needs a small command stream (Move, Line, CubicBezier, QuadBezier, 
 
 Geometries are Models so they can be data-bound and animated. A `PathGeometry` whose `Figures` change pushes a notification through the binding system, the holder Visual hears it, fires `MarkRenderDirty`.
 
-## 8. `FormattedText`
+## 8. FormattedText
 
 ```ts
 class FormattedText

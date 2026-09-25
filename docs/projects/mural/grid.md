@@ -35,7 +35,7 @@ Anything not in the table above is unscoped — if it comes up, we'd
 either fold it into one of the existing versions or open a new label
 with a separate agreement.
 
-## 1. `GridLength`
+## 1. GridLength
 
 The value type describing one track's sizing rule.
 
@@ -58,7 +58,7 @@ GridLength.Auto                  // auto: sized to children
 The class is immutable; mutate a track by replacing its
 `Width`/`Height` value rather than poking the existing GridLength.
 
-## 2. `ColumnDefinition` / `RowDefinition`
+## 2. ColumnDefinition / RowDefinition
 
 Thin Model subclasses carrying a single `Width` / `Height` DP. They
 appear in the Grid's `ColumnDefinitions` / `RowDefinitions`

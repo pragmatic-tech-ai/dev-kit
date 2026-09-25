@@ -30,7 +30,7 @@ PresentationTarget               (abstract)
 | `HtmlTarget` | DOM mount works; renderer pending | Browser hosting. Wires up the `<svg>` mount, ResizeObserver, devicePixelRatio. Painting lands with SvgRenderer. |
 | `FileTarget` | Scaffold | Future PNG / SVG file / PDF output. `Save()` currently throws. |
 
-## 2. Common API — `PresentationTarget`
+## 2. Common API — PresentationTarget
 
 The abstract base carries everything renderer-agnostic. All three concrete
 targets inherit:
@@ -60,7 +60,7 @@ abstract class PresentationTarget extends Model implements VisualHost {
 Properties are bindable; consumers and renderers subscribe via
 `AddPropertyChangedListener`.
 
-## 3. `HeadlessTarget`
+## 3. HeadlessTarget
 
 The host-less target. Drives one full pass synchronously when you call
 `Render(dc)`. Perfect for tests, command-line tools, and anything where
@@ -92,7 +92,7 @@ new HeadlessTarget(width, height, content?, deviceScale?)
 `width`, `height` set the scene dimensions. `content` is optional; you can
 assign it later. `deviceScale` defaults to 1 (no DPI scaling).
 
-### `Render(dc: DrawingContext)`
+### Render(dc: DrawingContext)
 
 The one driver. Synchronously runs:
 
@@ -114,7 +114,7 @@ After Render returns, the DC holds the complete output. For an
 - Server-side rendering — produce SVG to embed in HTTP responses.
 - Comparing approximate vs metric-driven text measurement output.
 
-## 4. `HtmlTarget`
+## 4. HtmlTarget
 
 Browser hosting. Owns:
 
@@ -157,7 +157,7 @@ enabling chained construction.
   ResizeObserver).
 - `DeviceScale` reflects `window.devicePixelRatio` at construction.
 
-### `Dispose()`
+### Dispose()
 
 Disconnects the ResizeObserver and removes the SVG mount from the host.
 Call before discarding an HtmlTarget so the host element is left clean.
@@ -174,7 +174,7 @@ Call before discarding an HtmlTarget so the host element is left clean.
 Setting `Content` today doesn't paint anything — the SVG mount is empty.
 The full render path lands with the SvgRenderer (build-order step 12.8).
 
-## 5. `FileTarget`
+## 5. FileTarget
 
 Scaffold only.
 
@@ -194,7 +194,7 @@ interface FileTargetOptions {
 "not implemented" message. The API signature is stable; the writers
 (SVG serializer, PNG rasterizer, PDF emitter) land later.
 
-## 6. `SvgDrawingContext`
+## 6. SvgDrawingContext
 
 The SVG implementation of `DrawingContext`. Translates draw calls into SVG
 element strings buffered internally.
@@ -260,7 +260,7 @@ await loadGoogleFontInto(target.TextMeasurer, 'Inter', { weights: [400, 700] });
 
 Full text-measurement story: [text-measurement.md](text-measurement.md).
 
-## 8. The `VisualHost` interface
+## 8. The VisualHost interface
 
 `PresentationTarget` implements `VisualHost`, the interface `Visual` sees:
 

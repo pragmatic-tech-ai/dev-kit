@@ -43,7 +43,7 @@ Anything not in the table above is unscoped — if it comes up, we'd
 either fold it into one of the existing versions or open a new label
 with a separate agreement.
 
-## 1. The `Behavior` base class
+## 1. The Behavior base class
 
 ```ts
 export abstract class Behavior extends Model
@@ -162,7 +162,7 @@ for (const b of listBox.Behaviors) { /* … */ }
 The slot is lazily allocated — a visual with no behaviors has
 `Behaviors === []` (a stable shared empty array).
 
-## 5. Detach lifecycle — `OnDetached`
+## 5. Detach lifecycle — OnDetached
 
 `Behavior` exposes an `OnDetached(visual)` virtual that fires every
 time the host's `visualParent` transitions from defined to undefined
@@ -211,7 +211,7 @@ export class CursorListenerBehavior extends Behavior
   events lose this — register `AddUnloadedListener` manually in that
   case.
 
-### `Visual.AddUnloadedListener` — the underlying primitive
+### Visual.AddUnloadedListener — the underlying primitive
 
 The same listener API behaviors get implicitly is exposed publicly:
 
@@ -228,7 +228,7 @@ The asymmetry is pragmatic — Loaded's one-shot is about
 "teardown for THIS detach" semantics, and conflating them would mean
 behaviors couldn't re-bind on re-attach.
 
-## 6. `ListReorderBehavior` — a concrete behavior
+## 6. ListReorderBehavior — a concrete behavior
 
 A receiver-side drag-to-reorder helper for any `ItemsControl`. Marks
 the items control as `AllowDrop=true`, signals `DragDropEffects.Move`

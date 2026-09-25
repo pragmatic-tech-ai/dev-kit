@@ -99,7 +99,7 @@ app.AddMergedDictionary(newTheme);       // listener fires (structure change)
 unsubscribe();                            // stop hearing about it
 ```
 
-## 4. Per-Visual `Resources`
+## 4. Per-Visual Resources
 
 Every `Visual` has a lazy `Resources: ResourceDictionary`. Touching the
 getter allocates one on first access; reads through `TryFindResource`
@@ -129,7 +129,7 @@ The `templatedParent` fallback is what lets template-internal Visuals find
 resources defined on the templated control (or on its surrounding tree).
 Same fallback used by inheritance and `FindName`.
 
-## 5. `DynamicResource` — reactive resource references
+## 5. DynamicResource — reactive resource references
 
 Wraps `Resources` lookup in a `Binding`-shaped value that pushes the
 current resolved value into a property and updates when the dictionary

@@ -39,7 +39,7 @@ the Brush / Pen / Color types these controls accept,
 `ControlTemplate`, [items-and-scrolling.md](items-and-scrolling.md) for
 `ItemsControl` and friends.
 
-## `Border`
+## Border
 
 A `Single` (one-child container) that paints a background, optionally
 strokes an outline, and pads its child inward. Modeled on WPF
@@ -155,7 +155,7 @@ card.Margin              = new Thickness(20);            // 20px gap from parent
 
 ---
 
-## `TextBlock`
+## TextBlock
 
 A leaf `Visual` that renders a single run of text. The simplest visible
 control — exercises text measurement (`MeasureOverride` via the host's
@@ -338,7 +338,7 @@ inspect.
 
 ---
 
-## `Canvas`
+## Canvas
 
 A `Panel` that places children at absolute (x, y) coordinates read from
 `Canvas.Left` / `Canvas.Top` attached properties. WPF-parity Canvas.
@@ -364,7 +364,7 @@ lands) will need the Canvas to subscribe to its children's Left/Top.
 Used by the `ge` graph viz framework — see
 [../applications/ge/scene.ts](https://github.com/pragmatic-tech-ai/mural/blob/main/applications/ge/scene.ts).
 
-## `ContentControl`
+## ContentControl
 
 Templated single-content host. See the full story in
 [templating.md](templating.md). API summary:
@@ -379,7 +379,7 @@ cc.GetTemplateChild('PART_X');         // look up by name within the applied tem
 Re-templating preserves Content; setting Template = undefined detaches
 the template.
 
-## `ItemsControl`
+## ItemsControl
 
 Data-driven collection display. See [items-and-scrolling.md](items-and-scrolling.md).
 API summary:
@@ -396,7 +396,7 @@ ic.Generator;                          // ItemContainerGenerator — item ↔ co
 Mutations on an ObservableCollection dispatch incrementally — adding
 one item splices in one container, not a full rebuild.
 
-## `ScrollViewer`
+## ScrollViewer
 
 A scrolling viewport. See [items-and-scrolling.md §9](items-and-scrolling.md#9-scrollviewer).
 Two modes (auto-detected):
@@ -413,7 +413,7 @@ sv.VerticalOffset = 200;        // programmatic only — no input events yet
 sv.ScrollToBottom();
 ```
 
-## `VirtualizingStackPanel`
+## VirtualizingStackPanel
 
 Vertical stack with uniform item height that only realizes containers
 inside the Viewport. See [items-and-scrolling.md §7](items-and-scrolling.md#7-virtualization).

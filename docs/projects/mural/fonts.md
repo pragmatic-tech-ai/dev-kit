@@ -71,7 +71,7 @@ when a single handle is convenient (registration, resolution, cache keys).
 
 ---
 
-## 3. The `FontFamily` DP
+## 3. The FontFamily DP
 
 `TextBlock` / `TextBox` expose `FontFamily` typed as `FontFamily`, but the
 getter/setter **coerce** so it tolerates a plain string:
@@ -92,7 +92,7 @@ measurer and into `FormattedText`.
 
 ---
 
-## 4. The registry — `FontManager`
+## 4. The registry — FontManager
 
 A process-wide singleton (`FontManager.Current`) that owns font sources and
 fans them out to everyone who needs the font.
@@ -170,7 +170,7 @@ the no-op base hook (they emit `font-family` verbatim).
 
 ---
 
-## 6. Declaring fonts in markup — the `fonts { }` block
+## 6. Declaring fonts in markup — the fonts { } block
 
 Resource management is markup-first, so fonts are declared in `.mu` inside a
 resource dictionary (a sibling of the `glyphs` keyword):
@@ -217,7 +217,7 @@ Notes:
 
 ---
 
-## 7. Unifying `glyphs` with `fonts`
+## 7. Unifying glyphs with fonts
 
 A font declared by a `fonts` block can back the `glyphs` keyword by family
 name, so the font path isn't repeated:

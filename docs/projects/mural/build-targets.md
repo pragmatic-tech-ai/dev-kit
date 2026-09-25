@@ -20,7 +20,7 @@ All commands run from the repo root. Source: [`package.json`](package.json).
 
 ## Commands in detail
 
-### `npm run build`
+### npm run build
 
 ```
 npm run build:templates && npm run build:demos && tsc
@@ -34,7 +34,7 @@ The full build pipeline. Runs the three stages in order:
 
 Run this after pulling, before serving the demo, or any time TypeScript or `.mu` markup changes.
 
-### `npm run build:templates`
+### npm run build:templates
 
 ```
 tsx src/tooling/build-control-templates.ts
@@ -44,7 +44,7 @@ Compiles internal control templates only. Input: `src/basic/*.template.mu`. Outp
 
 Run when you've edited a control template but nothing else, or as the minimum step before `npm test` (the `pretest` hook calls this automatically).
 
-### `npm run build:demos`
+### npm run build:demos
 
 ```
 tsx src/tooling/build-demo-templates.ts
@@ -52,7 +52,7 @@ tsx src/tooling/build-demo-templates.ts
 
 Compiles every demo `.mu` file. Output is written next to the source (e.g., `demo/demos/splitter/splitter.mu` → `demo/demos/splitter/splitter.mu.js`). **The `.mu.js` outputs are committed to git**, so a fresh clone can serve the demo without running this — but you must run it after editing any demo `.mu`.
 
-### `npm run typecheck`
+### npm run typecheck
 
 ```
 tsc --noEmit
@@ -60,7 +60,7 @@ tsc --noEmit
 
 Runs TypeScript in check-only mode. No files written. Fastest way to catch type errors during development; safe to wire to a watcher.
 
-### `npm test`
+### npm test
 
 ```
 tsx --conditions=development --test "src/**/*.test.ts"
@@ -70,7 +70,7 @@ Runs Node's native test runner against the TypeScript sources via `tsx`. The `--
 
 `pretest` hook runs `npm run build:templates` first, so a fresh checkout doesn't need a full `npm run build` to test — just `npm test`.
 
-### `npm run demo:html`
+### npm run demo:html
 
 ```
 npm run build && echo Demo built. From repo root: 'npx http-server -p 8080' then open http://localhost:8080/demo/
@@ -78,7 +78,7 @@ npm run build && echo Demo built. From repo root: 'npx http-server -p 8080' then
 
 Runs the full build and prints a reminder of how to serve the demo. Doesn't actually start a server — you run `npx http-server -p 8080` (or any static server) yourself, then open `http://localhost:8080/demo/platform/platform.html`.
 
-### `npm run demo:border` / `demo:text` / `demo:gfont`
+### npm run demo:border / demo:text / demo:gfont
 
 ```
 tsx src/basic/tests/border-render.ts
@@ -88,7 +88,7 @@ tsx src/basic/tests/google-font-render.ts
 
 Standalone render-pinning scripts. Each writes a rasterized output to disk for visual verification. Not the platform demo — these are old smoke tests kept around for regression checks on specific renderers.
 
-### `npm run clean`
+### npm run clean
 
 ```
 rimraf dist build
@@ -98,7 +98,7 @@ Deletes the `dist/` and `build/` output directories. In-tree `demo/**/*.mu.js` f
 
 Run before a clean rebuild, or when stale type information from a previous build is producing confusing errors.
 
-### `npm publish` (`prepublishOnly` hook)
+### npm publish (prepublishOnly hook)
 
 ```
 prepublishOnly: npm run clean && npm run build

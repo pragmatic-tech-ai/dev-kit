@@ -14,7 +14,7 @@ This design unifies the mechanics. Property identity is `(owner, name)`, stored 
 
 ## 1. Storage and identity
 
-### 1.1 PropertyDescriptor gains an `owner` field
+### 1.1 PropertyDescriptor gains an owner field
 
 ```ts
 export class PropertyDescriptor {
@@ -167,7 +167,7 @@ wrapper.set_property_value(TextBlock, 'foreground', 'red');
 // down via the 1.5 inheritance machinery — which already works on composite keys.
 ```
 
-### 3.3 WPF-style `Grid.Row` attached property
+### 3.3 WPF-style Grid.Row attached property
 
 ```ts
 class Grid extends PanelBase {
@@ -187,7 +187,7 @@ Grid.SetRow(button, 2);
 button.set_property_value(Grid, 'Row', 2);
 ```
 
-## 4. `RegisterAttachedProperty` — sugar synonym
+## 4. RegisterAttachedProperty — sugar synonym
 
 Kept for readability at declaration sites — `RegisterAttachedProperty(Grid, 'Row', ...)` signals intent more clearly than `RegisterProperty(Grid, 'Row', ...)` when the property is meant for cross-class use. It's a pure alias:
 

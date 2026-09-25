@@ -23,7 +23,7 @@ Six immutable value types live in [runtime/primitives.ts](https://github.com/pra
 All have `readonly` fields and structural equality via `Equals()`. Construct
 new instances rather than mutating; pass them by reference freely.
 
-### `Point`
+### Point
 ```ts
 new Point(X, Y)
 Point.Zero                                // (0, 0)
@@ -31,7 +31,7 @@ p.Add(other) / p.Subtract(other)
 p.Equals(other)
 ```
 
-### `Size`
+### Size
 ```ts
 new Size(Width, Height)
 Size.Zero                                 // (0, 0)
@@ -39,7 +39,7 @@ Size.Empty                                // (NaN, NaN) — "no size assigned"
 s.IsEmpty                                 // true when either component is NaN
 ```
 
-### `Rect`
+### Rect
 ```ts
 new Rect(X, Y, Width, Height)
 Rect.Zero
@@ -55,7 +55,7 @@ r.Intersect(other) → Rect | undefined     // undefined if no overlap
 r.Union(other)
 ```
 
-### `Color`
+### Color
 ```ts
 new Color(R, G, B, A?)                    // channels 0..255; A defaults to 255 (opaque)
 Color.Transparent / Color.Black / Color.White / Color.Red / Color.Green / Color.Blue
@@ -64,7 +64,7 @@ c.WithAlpha(a)
 c.ToCss()                                 // 'rgb(r,g,b)' or 'rgba(r,g,b,a)' as appropriate
 ```
 
-### `Matrix`
+### Matrix
 2D affine matrix in row-vector form:
 ```
 | M11  M12  0 |
@@ -88,7 +88,7 @@ m.Transform(p: Point)
 m.Invert() → Matrix | undefined           // undefined if singular
 ```
 
-### `Thickness`
+### Thickness
 Per-side inset distances (used for Margin, Padding, BorderThickness):
 ```ts
 new Thickness(5)               // all four sides = 5
@@ -99,7 +99,7 @@ Thickness.Zero
 t.Horizontal / t.Vertical / t.IsZero
 ```
 
-## 2. `DrawingContext`
+## 2. DrawingContext
 
 What `Visual.RenderOverride` paints into. The interface lives in two parts:
 
@@ -158,7 +158,7 @@ All brushes are Models with `Opacity` (0..1) and `Transform` (defaults to
 `Transform.Identity`) on the base. Concrete subclasses add type-specific
 properties.
 
-### `SolidColorBrush`
+### SolidColorBrush
 The workhorse:
 ```ts
 const fill = new SolidColorBrush(Color.Red);
@@ -168,7 +168,7 @@ fill.Color = Color.FromHex('#1e40af');
 `new SolidColorBrush()` (no args) produces a transparent brush. Always pass
 a color explicitly.
 
-### `LinearGradientBrush`
+### LinearGradientBrush
 Smooth color blend along a straight axis:
 ```ts
 const grad = new LinearGradientBrush([
@@ -182,7 +182,7 @@ grad.SpreadMethod = GradientSpreadMethod.Pad;   // | Reflect | Repeat
 `StartPoint` and `EndPoint` are in [0,1] × [0,1] bounding-box coordinates of
 whatever's being painted.
 
-### `RadialGradientBrush`
+### RadialGradientBrush
 Smooth blend outward from a center:
 ```ts
 const grad = new RadialGradientBrush([
@@ -194,7 +194,7 @@ grad.RadiusX = 0.5;
 grad.RadiusY = 0.5;
 ```
 
-### `ImageBrush`
+### ImageBrush
 Fills with a rastered image:
 ```ts
 const brush = new ImageBrush(new ImageSource('https://example.com/img.png'));
@@ -205,7 +205,7 @@ brush.AlignmentY = AlignmentY.Center;
 `ImageSource` currently wraps a URL string. SvgDrawingContext doesn't yet
 render ImageBrush — it falls back to no-fill.
 
-### `GradientStop`
+### GradientStop
 Plain value type, not a Model:
 ```ts
 new GradientStop(color: Color, offset: number)   // offset in [0, 1]
@@ -229,7 +229,7 @@ Convenience constructor: `new Pen()`, `new Pen(brush)`, `new Pen(brush, thicknes
 Without a brush, the pen produces no stroke. WPF defaults apply (Thickness=1,
 DashStyle=Solid, LineCap=Flat, LineJoin=Miter, MiterLimit=10).
 
-### `DashStyle`
+### DashStyle
 Plain value type with `Dashes: readonly number[]` (multiples of thickness)
 and `Offset`. Five built-in singletons:
 
@@ -257,27 +257,27 @@ Geometry                       (abstract)
 All geometries are Models with `Transform` on the base (applies to the
 geometry's local coordinate space).
 
-### `RectangleGeometry`
+### RectangleGeometry
 ```ts
 const r = new RectangleGeometry(new Rect(0, 0, 100, 50), 8, 8);
 //                                                       ^^^^^
 // RadiusX, RadiusY — non-zero rounds the corners
 ```
 
-### `EllipseGeometry`
+### EllipseGeometry
 ```ts
 const e = new EllipseGeometry(new Point(50, 50), 40, 30);
 //                              center,         rX, rY
 // Equal radii → circle
 ```
 
-### `LineGeometry`
+### LineGeometry
 Stroke-only (no fill):
 ```ts
 const l = new LineGeometry(new Point(0, 0), new Point(100, 100));
 ```
 
-### `PathGeometry`
+### PathGeometry
 Arbitrary geometry built from one or more `PathFigure`s:
 ```ts
 const path = new PathGeometry([
@@ -293,7 +293,7 @@ path.FillRule = FillRule.EvenOdd;             // | Nonzero (WPF default is EvenO
 Each `PathFigure` is one continuous run; multiple figures support shapes
 with holes.
 
-#### `PathSegment` subtypes
+#### PathSegment subtypes
 
 | Class | Constructor signature |
 |---|---|
@@ -304,7 +304,7 @@ with holes.
 
 `ArcSegment` fields map directly to SVG's `A rx ry rot large sweep x y`.
 
-### `GeometryGroup`
+### GeometryGroup
 Composite geometry — multiple child geometries combined under a single
 FillRule. Boolean ops (Union/Intersect/Xor/Exclude) are not yet supported.
 
@@ -325,17 +325,17 @@ Each transform exposes `Matrix` (a `runtime/primitives.ts` Matrix value).
 The renderer pushes Transform via `DrawingContext.PushTransform`; that reads
 `.Matrix` and applies it to subsequent draws until `Pop()`.
 
-### `Transform.Identity`
+### Transform.Identity
 Shared singleton — `Transform.Identity.Matrix === Matrix.Identity`. Reference
 compares are O(1) for the no-op short-circuit case.
 
-### `TranslateTransform`
+### TranslateTransform
 ```ts
 const t = new TranslateTransform(10, 20);   // shift by (10, 20)
 t.X = 30;                                    // bindable
 ```
 
-### `MatrixTransform`
+### MatrixTransform
 Escape hatch for arbitrary matrices:
 ```ts
 const t = new MatrixTransform(Matrix.Rotate(Math.PI / 4));
@@ -345,7 +345,7 @@ t.Matrix = Matrix.Scale(2, 2).Multiply(Matrix.Translate(50, 0));
 Scale, Rotate, and TransformGroup classes are intentionally deferred —
 compose via Matrix math when needed.
 
-## 7. Painting in `RenderOverride`
+## 7. Painting in RenderOverride
 
 `RenderOverride` runs in the Visual's **local coordinate space**. The host
 has already pushed a translate (and any other transforms) to position the

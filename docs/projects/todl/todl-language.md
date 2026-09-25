@@ -196,7 +196,7 @@ namespace acme.ea.model
 - **Terminators**: every statement ends in `;`. Blocks are `{ … }`, lists are
   `[ … ]`.
 
-### 4.3 `primitive` — a base data type
+### 4.3 primitive — a base data type
 
 ```todl
 primitive identifier : string
@@ -211,7 +211,7 @@ primitive identifier : string
 primitives, a `regex` constraint. `string` is usable as a bare field type
 without being declared.
 
-### 4.4 `concept` — a type in the meta-model
+### 4.4 concept — a type in the meta-model
 
 A concept is the first-class entity authors instantiate and the compiler
 validates. It carries fields, relationships, invariants, and annotations, and
@@ -260,7 +260,7 @@ subtypes. Same cardinality suffixes as fields.
 (`invariant "…";`) is documentation surfaced on violation. The block form adds
 a machine-checked `predicate` expression (see §5).
 
-### 4.5 `taxonomy` — a controlled vocabulary (clabject classes)
+### 4.5 taxonomy — a controlled vocabulary (clabject classes)
 
 A taxonomy *represents* one or more concepts; each `term` is a **class** of that
 concept — a named subtype carrying fixed field values. A concept field typed by
@@ -288,7 +288,7 @@ taxonomy component-category : represents component
 An instance selects a term by bare name (`category = ai-agent;`). A `|`-composed
 set is allowed where the field is a flag set (`traits = physical | managed;`).
 
-### 4.6 `annotation` / `annotate` — typed metadata
+### 4.6 annotation / annotate — typed metadata
 
 An **annotation** is typed, author-declared metadata attached to a concept or to
 the package as a whole. It is static / type-level — it carries no per-instance
@@ -350,7 +350,7 @@ their own icon:
   presentation (a raw `icon =` / `label =` attribute, where present, still takes
   precedence). Custom annotations are queryable and bindable in author overrides.
 
-### 4.7 `model` — the instance container
+### 4.7 model — the instance container
 
 Meta-model authors write concepts / primitives / taxonomies / annotations; the
 *data* (instances) is authored in a `model` block, the **sole carrier of
@@ -380,7 +380,7 @@ model acme : acme-ea uses azure-catalog
 - A nested record inside a body expresses **containment** (an `EdgeKind.Contains`
   edge). `<id>` is a bare identifier or a quoted string.
 
-### 4.8 `class` and `instanceof` — partial fixed-value definitions
+### 4.8 class and instanceof — partial fixed-value definitions
 
 `class <concept> <id> { … }` declares a **class**: a partial, fixed-value
 definition of a concept. Classes are **exempt** from the `model` rule — they may
@@ -533,7 +533,7 @@ spurious later diagnostics. Re-check after each fix.
 
 ## 8. Compiled outputs
 
-### 8.1 `TodlDocument` — the portable JSON form
+### 8.1 TodlDocument — the portable JSON form
 
 `toJSON(model)` serialises the graph to a plain, stringifiable document;
 `fromJSON(doc)` rebuilds a `Repository` from it. Enums are written by member
@@ -548,7 +548,7 @@ interface TodlDocument {
 }
 ```
 
-### 8.2 `<slug>.js` — the runtime module
+### 8.2 <slug>.js — the runtime module
 
 `toMetaModule(model, { slug, … })` projects the ontology tier to a legacy
 `<slug>.js` ES module — the shape the browser runtime (Mural / Plexus) consumes:

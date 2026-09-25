@@ -130,7 +130,7 @@ with `RemovePropertyChangedListener(property, callback)` — the same callback
 reference must be passed. Listeners fire after every effective-value change
 regardless of source (direct set, binding push, `ClearValue`, etc.).
 
-## 3. Value priority and `GetValueSource`
+## 3. Value priority and GetValueSource
 
 Each Model property tracks where its current value came from — the
 `EffectiveValueDescriptor` resolves the highest-priority source per read.
@@ -255,7 +255,7 @@ The path attaches change listeners at each Model along the chain. When any
 chain member's relevant property mutates, the path re-traverses from the
 mutated segment forward and pushes the new terminal value through.
 
-### Collection reactivity (`INotifyCollectionChanged`)
+### Collection reactivity (INotifyCollectionChanged)
 
 When a path traverses an `ObservableCollection<T>` or a plain `Array<T>`
 at an index segment (`managers[2]`), the binding subscribes to that
@@ -313,7 +313,7 @@ new Binding(model, 'count', BindingMode.OneWay, {
 - `TargetNullValue` substitutes when the resolved value is null.
 - `FallbackValue` substitutes when the resolved value is undefined.
 
-### `validationRules` — gating the binding
+### validationRules — gating the binding
 
 `BindingOptions.validationRules?: readonly ValidationRule[]` runs every
 rule against the post-pipeline value on every push (source → target) and
@@ -377,7 +377,7 @@ The existing 3-arg `MultiBinding(target: Visual, paths: string[], converter)`
 form (used by the inline-expression compiler) is still available as an
 overload — same export, different signature.
 
-### AncestorBinding — `RelativeSource FindAncestor`
+### AncestorBinding — RelativeSource FindAncestor
 
 `AncestorBinding(start, ancestorType, property, level=1)` walks
 `start.GetVisualParent()` chain looking for the `level`-th ancestor that
@@ -406,7 +406,7 @@ chain. The framework disposes bindings automatically when one is replaced
 by another value, but explicit disposal is the contract if you hold a
 binding outside the framework.
 
-### Binding sources — `DataContextBinding` vs `ElementNameBinding`
+### Binding sources — DataContextBinding vs ElementNameBinding
 
 Two factories ship for path-style bindings; both produce a `Binding`
 the EVD knows how to install. The difference is what they bind
@@ -518,7 +518,7 @@ root class is referred to by the same composite key (`${RootOwner.name}.${name}`
 across overrides, so per-instance storage and listener subscriptions stay
 unified.
 
-## 8. The `MetaData` flag enum
+## 8. The MetaData flag enum
 
 `MetaData` is a flag enum (powers of two). Combine with `|`:
 

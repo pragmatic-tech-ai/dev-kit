@@ -70,7 +70,7 @@ doc.CreateConnector(
 Hand `doc` to the view via `DataContext`. In markup the `Diagram` binds its
 `ItemsSource` to `Nodes` and `Connectors` to `Connectors`.
 
-### 2.2 Wiring the view in `.mu`
+### 2.2 Wiring the view in .mu
 
 The `Diagram` control needs its `ItemsSource`, a `Canvas`-based `ItemsPanel`,
 and whichever feature toggles you want on. It **auto-wires its `Mutator`**
@@ -101,7 +101,7 @@ command toolbars, and format pane).
 
 ---
 
-## 3. `DiagramDocument` — the model
+## 3. DiagramDocument — the model
 
 `extends Model`, and structurally satisfies `DiagramMutator`, `IDocument`, and
 `ICommandTarget`.
@@ -150,7 +150,7 @@ flow into these methods.
 
 ---
 
-## 4. `Diagram` — the control
+## 4. Diagram — the control
 
 `extends Selector` (which extends `ItemsControl`). Construct it via markup
 (it has a default style); most of its surface is DPs you set once.
@@ -249,9 +249,9 @@ collection). Its only public surface is the `MaterializedVisuals` map.
 
 ---
 
-## 5. `Figure` and `Group`
+## 5. Figure and Group
 
-### 5.1 `Figure`
+### 5.1 Figure
 
 `extends ContentControl`. A single positioned shape: a geometry, a fill/stroke,
 and a text label. Default size is `FIGURE_DEFAULT_SIZE` (80 dp).
@@ -289,7 +289,7 @@ Figure.fromSource(source, left, top, options?: { width?, height?, kind? }): Figu
   lets multiple connectors share an edge without overlapping.
 - `Add/RemoveSideEndpointsChangedListener(listener)`.
 
-### 5.2 `Group`
+### 5.2 Group
 
 `extends ContentControl`. A container whose `Left`/`Top` you move as a unit;
 `Width`/`Height` are read-only (computed from members).
@@ -335,7 +335,7 @@ interface CombinableShape { Geometry: PathGeometry | undefined; Left: number; To
 
 ---
 
-## 7. Text — `ShapeText`
+## 7. Text — ShapeText
 
 Every `Figure` and `Connector` owns a `ShapeText` (`Figure.Text`,
 `Connector.Text`). It's a `Control` with its own template and can carry either
@@ -382,7 +382,7 @@ and rotated:
 
 Inside the editor, Ctrl+B/I/U toggle bold/italic/underline.
 
-### 7.4 Rich-content helpers (`FlowDocument`)
+### 7.4 Rich-content helpers (FlowDocument)
 
 Serialize, clone, and convert documents:
 
@@ -443,7 +443,7 @@ resolve `Length/SourceId/TargetId`.
 
 ---
 
-## 8. Text shapes — `TextShape` & `Callout`
+## 8. Text shapes — TextShape & Callout
 
 Preconfigured figures whose reason for being *is* their text.
 
@@ -483,7 +483,7 @@ On load, `kind` reconstructs the class (`'text'` → `TextShape`, `'callout'` �
 
 ## 9. Connectors
 
-### 9.1 `Connector`
+### 9.1 Connector
 
 `extends Shape` — a self-drawing routed line.
 
@@ -508,7 +508,7 @@ On load, `kind` reconstructs the class (`'text'` → `TextShape`, `'callout'` �
 `MovePortSlotToIndex(end, index)`. **Static:** `GetCapInset(v)` /
 `SetCapInset(v, value)` (a cap attached property).
 
-### 9.2 `ConnectorEndpoint`
+### 9.2 ConnectorEndpoint
 
 `extends Model` — the address of one end: a node + port, or a free point.
 

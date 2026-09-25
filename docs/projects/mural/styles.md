@@ -175,7 +175,7 @@ resolver):
 explicit Style  >  implicit [TargetType=X]  >  theme (DefaultStyleKey)
 ```
 
-### Explicit — `Element.Style = someStyle`
+### Explicit — Element.Style = someStyle
 
 Direct assignment. Always wins.
 
@@ -184,7 +184,7 @@ border.Style = cardStyle;
 border.Style = undefined;    // clears; falls back to implicit / theme (if any)
 ```
 
-### Implicit — keyed by `TargetType` in a `ResourceDictionary`
+### Implicit — keyed by TargetType in a ResourceDictionary
 
 ```ts
 const root = new TestPanel();
@@ -205,7 +205,7 @@ root.Resources.Set(Border, cardStyle);   // card picks it up via the subscriptio
 root.Resources.Set(Border, otherStyle);  // card switches automatically
 ```
 
-### Theme — keyed by `DefaultStyleKey`
+### Theme — keyed by DefaultStyleKey
 
 The lowest tier: a control's baseline chrome. Resolved the same way as
 the implicit style but keyed by the Element's `DefaultStyleKey` instead
@@ -222,13 +222,13 @@ A `Setter.value` can be:
 new Setter(Border, 'CornerRadius', 4)
 ```
 
-### A `Binding` (with a per-target sharing caveat)
+### A Binding (with a per-target sharing caveat)
 A bare `Binding` has per-instance state (its `setOnValueChanged`
 callback). Sharing one `Binding` across two Visuals applying the same
 `Style` would have the second target overwrite the first's callback. For
 per-target safety, wrap in `SetterFactory`.
 
-### A `SetterFactory<T>` — fresh value per target
+### A SetterFactory<T> — fresh value per target
 ```ts
 import { SetterFactory } from '../runtime/index.js';
 
@@ -305,7 +305,7 @@ Visual's `DataContext`), so the same trigger transparently fires for any
 item whose source resolves to a matching value — heavily used inside
 `DataTemplate` triggers.
 
-## 7. `Style.Resources`
+## 7. Style.Resources
 
 Lazy per-style `ResourceDictionary`. Consulted **first** by
 `Visual.TryFindResource` when this style is the Visual's active style —
@@ -363,7 +363,7 @@ Practical implications:
   normalizes whatever base slot won, and `Source` reports `CoercedValue`
   when it changed the value.
 
-## 9. `StyleApplicator` — apply / swap machinery
+## 9. StyleApplicator — apply / swap machinery
 
 One `StyleApplicator` per Element
 ([style-applicator.ts](https://github.com/pragmatic-tech-ai/mural/blob/main/src/visual-engine/style-applicator.ts)), created
@@ -409,7 +409,7 @@ current by:
   so *both* re-resolve when any dictionary changes. Re-wired on tree
   mutations via `_refresh_styles_subtree`.
 
-### `DefaultStyleKey` — opt-in theme lookup
+### DefaultStyleKey — opt-in theme lookup
 
 `DefaultStyleKey` is a read-only DP, `undefined` by default, so theme
 lookup is **opt-in per subclass**. A control declares it via an
@@ -429,7 +429,7 @@ class Button extends ContentControl {
 > Template even though the theme dictionary has one. First thing to check
 > when a default cap/template "doesn't apply."
 
-### `applyDefaultStyle()` — eager resolution from the ctor
+### applyDefaultStyle() — eager resolution from the ctor
 
 The framework would otherwise resolve styles only at `AttachLogical`.
 Templated controls call `applyDefaultStyle()` at the end of their
@@ -450,7 +450,7 @@ constructor() {
 }
 ```
 
-## 11. `ControlTemplate`
+## 11. ControlTemplate
 
 A `ControlTemplate`
 ([control-template.ts](https://github.com/pragmatic-tech-ai/mural/blob/main/src/basic/templates/control-template.ts)) is the
@@ -547,7 +547,7 @@ palette inconsistencies are fixed centrally in the theme's Styles rather
 than control-by-control (see the type-scale audit,
 [current-backlog.md § 18.13](https://github.com/pragmatic-tech-ai/mural/blob/main/current-backlog.md)).
 
-## 13. Composing styles — `Style.Combine` / `@a + @b`
+## 13. Composing styles — Style.Combine / @a + @b
 
 WPF allows exactly one `Style` per element. mural adds **composition**:
 apply several styles at once, either programmatically or in markup.

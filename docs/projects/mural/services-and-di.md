@@ -37,7 +37,7 @@ services build on, [mural-language-design.md](mural-language-design.md) for the
 
 ---
 
-## 1. The container — `ServiceProvider`
+## 1. The container — ServiceProvider
 
 `ServiceProvider` is the DI container. It implements two orthogonal contracts:
 
@@ -87,7 +87,7 @@ Three lifetimes, mirroring the .NET vocabulary:
 | `scoped` | one per resolving scope | at each scope in the parent/child chain |
 | `transient` | a fresh one every resolve | never cached |
 
-### Registration (the `IServiceContainer` surface)
+### Registration (the IServiceContainer surface)
 
 All registration methods return the container for chaining.
 
@@ -110,7 +110,7 @@ dependencies explicitly:
 provider.register(DocKey, (p) => new Document(p.getRequired(ClockKey)));
 ```
 
-### Resolution (the `IServiceProvider` surface)
+### Resolution (the IServiceProvider surface)
 
 ```ts
 const clock  = provider.get(ClockKey);          // T | undefined
@@ -146,7 +146,7 @@ there), then clears the cache. It does not touch the parent chain or child
 scopes — dispose the scope you created. The check is structural (anything with
 a `Dispose()` method), so the container stays decoupled from `ServiceBase`.
 
-### `Application.Services` — the root provider
+### Application.Services — the root provider
 
 Every `Application` exposes a lazy root `ServiceProvider` at `Services`. This
 is the composition root for app-wide services:
@@ -158,7 +158,7 @@ Application.current.Services.registerInstance(StorageKey, localStorageAdapter);
 
 ---
 
-## 2. `ServiceBase` — a service that is also a view-model
+## 2. ServiceBase — a service that is also a view-model
 
 A plain service can be any object. But most app services hold state the view
 should observe — a selection, a status message, a list of destinations.
@@ -211,7 +211,7 @@ that scope owns, so a per-shell scope tears its services down with the shell.
 
 ---
 
-## 3. Composing services in markup — `.services:`
+## 3. Composing services in markup — .services:
 
 The `.services:` block is the DI container's markup surface. It registers
 implementations into the surrounding scope's `Services` provider.
@@ -258,7 +258,7 @@ The old `Impl(Dep, …)` form is a pointed parse error.
 //                         (p) => new StorageBackend(p), 'singleton');
 ```
 
-### Where `.services:` can appear
+### Where .services: can appear
 
 - **`Application { .services: { … } }`** → registers into
   `Application.current.Services` (the app root).
@@ -302,7 +302,7 @@ target visual at service-construction time.
 
 ---
 
-## 4. Consuming services in markup — `$service(Token)`
+## 4. Consuming services in markup — $service(Token)
 
 `$service(Token).path` binds a property to a service resolved from the ambient
 scope. It's the dual of `.services:` — registration writes, `$service` reads.
@@ -348,13 +348,13 @@ Three robustness properties:
 
 ---
 
-## 5. The general `.Member: { … }` block
+## 5. The general .Member: { … } block
 
 `.services:` is a *named* case of a general mechanism: `.Member: { … }` fills a
 complex aggregate property of the surrounding element. It chooses one of two
 strategies by the body's shape.
 
-### List strategy — `.Add(child)`
+### List strategy — .Add(child)
 
 Bare elements (no `x:key`) append to `target.<Member>` (an
 `ObservableCollection` DP). Reproduces the bespoke `ColumnDefinitions { … }`
@@ -370,7 +370,7 @@ Grid {
 // → grid.ColumnDefinitions.Add(new ColumnDefinition()); (×2)
 ```
 
-### Dictionary strategy — `.Set(key, value)`
+### Dictionary strategy — .Set(key, value)
 
 Keyed entries — `@Key = value`, or an element/resource carrying `x:key="K"` —
 set into `target.<Member>` via `.Set(key, value)` (the `ResourceDictionary`
@@ -486,7 +486,7 @@ TwoWay `$service` bindings, and the service self-populates from the registry.
 
 ## 9. API reference
 
-### Runtime (`mural/runtime`)
+### Runtime (mural/runtime)
 
 | Export | Kind | Summary |
 |---|---|---|
@@ -501,7 +501,7 @@ TwoWay `$service` bindings, and the service self-populates from the registry.
 | `ServiceLifetime` | type | `'singleton' \| 'scoped' \| 'transient'` |
 | `ServiceBinding` | factory | the `$service(Token)` binding (usually emitted by markup) |
 
-### `ServiceProvider` methods
+### ServiceProvider methods
 
 | Method | Returns | Notes |
 |---|---|---|
