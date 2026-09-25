@@ -11,26 +11,26 @@
   <link rel="stylesheet" href="../design-systems/default/colors_and_type.css">
   <script src="../design-systems/default/_ds_bundle.js"></script>
 </helmet>
-<div style="position:relative;width:1920px;height:200px;background:#0A0A0B;overflow:hidden;">
+<div style="position:relative;width:1920px;height:360px;background:#0A0A0B;overflow:hidden;">
   <div style="position:absolute;inset:0;background-image:radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1px);background-size:24px 24px;opacity:0.6;"></div>
   <canvas ref="{{ canvasRef }}" style="position:absolute;inset:0;width:100%;height:100%;display:block;"></canvas>
   <div style="position:absolute;inset:0;box-shadow:inset 0 0 90px 10px rgba(10,10,11,0.92);pointer-events:none;"></div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1920,&quot;height&quot;:200},&quot;animate&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Behavior&quot;},&quot;relations&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Graph&quot;},&quot;density&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;dense&quot;,&quot;options&quot;:[&quot;sparse&quot;,&quot;medium&quot;,&quot;dense&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Graph&quot;},&quot;accent&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;green&quot;,&quot;options&quot;:[&quot;mono&quot;,&quot;green&quot;,&quot;multi&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Graph&quot;},&quot;seed&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:7,&quot;min&quot;:1,&quot;max&quot;:99,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Graph&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1920,&quot;height&quot;:360},&quot;guides&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Layout&quot;},&quot;animate&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Behavior&quot;},&quot;relations&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Graph&quot;},&quot;density&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;dense&quot;,&quot;options&quot;:[&quot;sparse&quot;,&quot;medium&quot;,&quot;dense&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Graph&quot;},&quot;accent&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;green&quot;,&quot;options&quot;:[&quot;mono&quot;,&quot;green&quot;,&quot;multi&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Graph&quot;},&quot;seed&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:7,&quot;min&quot;:1,&quot;max&quot;:99,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Graph&quot;}}">
 class Component extends DCLogic {
   canvasRef = React.createRef();
   renderVals() { return { canvasRef: this.canvasRef }; }
   componentDidMount() { this.build(); }
   componentDidUpdate(p) {
-    if (['density', 'accent', 'animate', 'seed', 'relations'].some(k => p[k] !== this.props[k])) this.build();
+    if (['density', 'accent', 'animate', 'seed', 'relations', 'guides'].some(k => p[k] !== this.props[k])) this.build();
   }
   componentWillUnmount() { cancelAnimationFrame(this.raf); }
 
   build() {
     cancelAnimationFrame(this.raf);
     const canvas = this.canvasRef.current; if (!canvas) return;
-    const W = 1920, H = 200;
+    const W = 1920, H = 360;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     canvas.width = W * dpr; canvas.height = H * dpr;
     const ctx = canvas.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -42,20 +42,29 @@ class Component extends DCLogic {
     const accent = this.props.accent ?? 'green';
     const animate = this.props.animate ?? true;
     const showRel = this.props.relations ?? true;
-    const [nHub, kids, cross] = { sparse: [6, 3, 4], medium: [8, 4, 8], dense: [10, 5, 14] }[density] || [8, 4, 8];
+    const [nHub, kids, cross] = { sparse: [8, 3, 6], medium: [11, 4, 12], dense: [14, 5, 20] }[density] || [11, 4, 12];
 
     const GREEN = '46,168,98', CYAN = '58,166,185', PLUM = '124,107,173', GREY = '160,164,170';
     const hubCols = accent === 'mono' ? [GREEN] : accent === 'multi' ? [GREEN, CYAN, PLUM] : [GREEN, GREEN, CYAN];
-    const concepts = ['Capability', 'Domain', 'Service', 'Decision', 'Principle', 'Standard', 'Process', 'Data entity', 'Actor', 'Requirement', 'Risk', 'Interface'];
+    const concepts = ['Capability', 'Domain', 'Decision', 'Principle', 'Standard', 'Process', 'Data entity', 'Actor', 'Requirement', 'Risk', 'Interface'];
     const entities = ['Billing', 'Identity', 'ADR-014', 'Order', 'Customer', 'API gateway', 'GDPR', 'Onboarding', 'Ledger', 'Pricing', 'Event bus', 'Audit log', 'Payments', 'ADR-031', 'Catalog', 'Consent', 'SLA 99.9', 'Invoice', 'Partner', 'Search', 'Tenant', 'Retention', 'ADR-007', 'Fulfilment', 'Policy', 'KYC', 'Routing', 'Schema v3'];
     const rels = ['realizes', 'depends on', 'governs', 'owns', 'part of', 'informs', 'implements', 'constrains', 'supersedes', 'relates to'];
     const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
     const cPool = shuffle(concepts), ePool = shuffle(entities);
 
     const hubs = [], nodes = [], edges = [];
+    const ZW = Math.round(W * 0.3);
+    const zones = [
+      { x: (W - ZW) / 2, y: (H - 100) / 2 - 20, w: ZW, h: 100 },
+      { x: (W - ZW) / 2, y: H - 50 - 18, w: ZW, h: 50 },
+    ];
+    const inZone = (x, y, pad) => zones.some(z => x > z.x - pad && x < z.x + z.w + pad && y > z.y - pad && y < z.y + z.h + pad);
     const step = W / nHub;
     for (let i = 0; i < nHub; i++) {
-      const h = { x: step * (i + 0.5) + (rnd() - 0.5) * step * 0.35, y: H * (0.3 + rnd() * 0.4), r: 5 + rnd() * 2.5, hub: true, col: pick(hubCols), label: cPool[i % cPool.length] };
+      let hx, hy, ok = false;
+      for (let k = 0; k < 30 && !ok; k++) { hx = step * (i + 0.5) + (rnd() - 0.5) * step * 0.4; hy = H * (0.1 + rnd() * 0.8); ok = !inZone(hx, hy, 36); }
+      if (!ok) continue;
+      const h = { x: hx, y: hy, r: 5 + rnd() * 2.5, hub: true, col: pick(hubCols), label: cPool[i % cPool.length] };
       hubs.push(h); nodes.push(h);
     }
     const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -65,6 +74,7 @@ class Component extends DCLogic {
       for (let i = 0; i < n; i++) {
         const ang = rnd() * Math.PI * 2, rad = 50 + rnd() * 70;
         const c = { x: h.x + Math.cos(ang) * rad * 1.3, y: clamp(h.y + Math.sin(ang) * rad * 0.8, 16, H - 16), r: 2 + rnd() * 1.6, col: h.col, parent: h, label: rnd() < 0.55 ? ePool[ei++ % ePool.length] : null };
+        if (inZone(c.x, c.y, 14) || c.x < 12 || c.x > W - 12) continue;
         nodes.push(c); edges.push({ a: h, b: c, kind: 'own', rel: rnd() < 0.3 ? pick(rels) : null });
       }
     });
@@ -81,13 +91,23 @@ class Component extends DCLogic {
       const d = Math.abs(a.x - b.x); if (d > step * 1.8 || d < 60) continue;
       edges.push({ a, b, kind: 'cross', rel: rnd() < 0.3 ? pick(rels) : null }); k++;
     }
-    // curved edges: quadratic with perpendicular bend
-    edges.forEach(e => {
-      const mx = (e.a.x + e.b.x) / 2, my = (e.a.y + e.b.y) / 2, dx = e.b.x - e.a.x, dy = e.b.y - e.a.y, L = Math.hypot(dx, dy) || 1;
-      const bend = (e.kind === 'core' ? 0.12 : e.kind === 'cross' ? 0.22 : 0.06) * (rnd() < 0.5 ? -1 : 1) * L;
-      e.c = { x: mx - dy / L * bend, y: clamp(my + dx / L * bend, 4, H - 4) }; e.L = L;
-    });
     const qp = (e, t) => { const u = 1 - t; return { x: u * u * e.a.x + 2 * u * t * e.c.x + t * t * e.b.x, y: u * u * e.a.y + 2 * u * t * e.c.y + t * t * e.b.y }; };
+    const keep = edges.filter(e => {
+      const mx = (e.a.x + e.b.x) / 2, my = (e.a.y + e.b.y) / 2, dx = e.b.x - e.a.x, dy = e.b.y - e.a.y, L = Math.hypot(dx, dy) || 1;
+      const base = (e.kind === 'core' ? 0.12 : e.kind === 'cross' ? 0.22 : 0.06) * (rnd() < 0.5 ? -1 : 1);
+      e.L = L;
+      for (const m of [1, -1, 2.5, -2.5]) {
+        const bend = base * m * L;
+        e.c = { x: mx - dy / L * bend, y: clamp(my + dx / L * bend, 4, H - 4) };
+        let clear = true;
+        for (let k = 0; k <= 16 && clear; k++) { const p = qp(e, k / 16); if (inZone(p.x, p.y, 10)) clear = false; }
+        if (clear) return true;
+      }
+      return false;
+    });
+    edges.length = 0; edges.push(...keep);
+    const linked = new Set(); edges.forEach(e => { linked.add(e.a); linked.add(e.b); });
+    const liveNodes = nodes.filter(n => n.hub || linked.has(n)); nodes.length = 0; nodes.push(...liveNodes);
 
     // static layer
     const bg = document.createElement('canvas'); bg.width = W * dpr; bg.height = H * dpr;
@@ -117,8 +137,9 @@ class Component extends DCLogic {
         b.strokeStyle = `rgba(${n.col},0.5)`; b.lineWidth = 1; b.beginPath(); b.arc(n.x, n.y, n.r, 0, 6.283); b.stroke();
       }
     });
+    if (this.props.guides) { b.setLineDash([4, 4]); b.strokeStyle = 'rgba(46,168,98,0.5)'; b.lineWidth = 1; zones.forEach(z => b.strokeRect(z.x + 0.5, z.y + 0.5, z.w, z.h)); b.setLineDash([]); }
     // labels with collision avoidance: hubs → entities → relations
-    const placed = [];
+    const placed = zones.map(z => ({ x: z.x - 8, y: z.y - 8, w: z.w + 16, h: z.h + 16 }));
     const PAD = 4;
     const hits = (r) => {
       if (r.x < 4 || r.x + r.w > W - 4 || r.y < 2 || r.y + r.h > H - 2) return true;

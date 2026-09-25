@@ -3,23 +3,41 @@
 
 @import "{{ site.theme }}";
 
-/* --- Header: abstract SVG background (docs/_layouts/default.html) --- */
+/* --- Header: knowledge-graph banner (docs/_layouts/default.html + assets/js/graph-banner.js) ---
+   Mirrors design/techno-graph-background/Knowledge Graph Banner.dc.html: a 360px
+   near-black band whose graph leaves the middle empty for the title block and a
+   strip along the bottom for the nav. The content is laid out into exactly those
+   holes; the script measures them and routes the graph around. */
 .page-header {
   position: relative;
   overflow: hidden;
-  background-color: #241640;
-  background-image: none; /* drop cayman's diagonal-lines overlay + gradient */
+  min-height: 360px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.5rem 1rem 18px;
+  background-color: #0A0A0B;
+  /* dot grid from the design; replaces cayman's gradient + diagonal-lines overlay */
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 24px 24px;
 }
 
-.page-header > .header-bg {
+.page-header > .header-graph,
+.page-header > .header-vignette {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   z-index: 0;
+  pointer-events: none;
 }
 
-/* Keep the header text/buttons/nav above the SVG. */
+.page-header > .header-vignette {
+  box-shadow: inset 0 0 90px 10px rgba(10, 10, 11, 0.92);
+}
+
+/* Keep the header text/buttons/nav above the graph. */
 .page-header > .project-name,
 .page-header > .project-tagline,
 .page-header > .btn,
@@ -28,9 +46,42 @@
   z-index: 1;
 }
 
-/* --- Root project navigation strip --- */
+/* Title block: centred in the banner's empty middle (auto margin above the
+   title and above the nav split the free space evenly). */
+.page-header > .project-name {
+  margin: auto 0 0.35rem;
+  font-family: "Inter Tight", system-ui, sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: #F2F3F4;
+}
+
+.page-header > .project-tagline {
+  margin: 0 0 1rem;
+  max-width: 40rem;
+  font-family: "Inter Tight", system-ui, sans-serif;
+  font-weight: 500;
+  color: rgba(230, 232, 234, 0.62);
+  opacity: 1;
+}
+
+.page-header > .btn {
+  margin: 0;
+  color: rgba(230, 232, 234, 0.85);
+  background-color: rgba(10, 10, 11, 0.6);
+  border-color: rgba(46, 168, 98, 0.45);
+}
+
+.page-header > .btn:hover {
+  color: #fff;
+  background-color: rgba(46, 168, 98, 0.18);
+  border-color: rgba(46, 168, 98, 0.8);
+}
+
+/* --- Root project navigation strip: the banner's bottom hole --- */
 .project-nav {
-  margin-top: 1rem;
+  margin-top: auto;
+  padding-top: 1rem;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
@@ -38,25 +89,35 @@
 }
 
 .project-nav-link {
-  color: #fff;
+  color: rgba(230, 232, 234, 0.85);
+  background-color: rgba(10, 10, 11, 0.6);
   text-decoration: none;
+  font-family: "Inter Tight", system-ui, sans-serif;
   font-size: 0.95rem;
   line-height: 1;
   padding: 0.4rem 0.9rem;
-  border: 1px solid rgba(255, 255, 255, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.22);
   border-radius: 999px;
   transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
 .project-nav-link:hover {
-  background-color: rgba(255, 255, 255, 0.16);
-  border-color: rgba(255, 255, 255, 0.7);
+  color: #fff;
+  background-color: rgba(46, 168, 98, 0.18);
+  border-color: rgba(46, 168, 98, 0.8);
   text-decoration: none;
 }
 
 .project-nav-link.is-current {
-  background-color: rgba(255, 255, 255, 0.92);
-  color: #241640;
+  background-color: #2EA862;
+  color: #0A0A0B;
   border-color: transparent;
   font-weight: 600;
+}
+
+/* Small screens: cayman's own header breakpoint. */
+@media screen and (max-width: 42em) {
+  .page-header {
+    min-height: 300px;
+  }
 }
