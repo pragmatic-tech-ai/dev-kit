@@ -368,7 +368,7 @@ Both walks traverse the same logical-parent chain, both terminate at `Applicatio
 
 `x:` does **not** use Resources; `@` does **not** use providedExtensions.
 
-### 9.4 Runtime already implements the resource walk
+### 9.4 Runtime implements the resource walk
 
 The mural runtime ships [src/runtime/resource-dictionary.ts](src/runtime/resource-dictionary.ts) and [src/runtime/visual.ts](src/runtime/visual.ts) with the resource side fully built:
 
