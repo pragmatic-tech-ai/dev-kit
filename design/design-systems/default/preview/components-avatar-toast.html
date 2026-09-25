@@ -1,0 +1,44 @@
+<!doctype html>
+<!-- @dsCard group="Components" name="Avatars & toast" subtitle="Stacked avatars and confirmation toast" viewport="700x180" -->
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Components · Avatar & toast</title>
+<link rel="stylesheet" href="_card.css"/>
+<style>
+  .row { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+  .av { width: 32px; height: 32px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: #fff; }
+  .av-stack { display: flex; }
+  .av-stack .av { margin-left: -8px; border: 2px solid var(--bg-0); }
+  .av-stack .av:first-child { margin-left: 0; }
+
+  .toast {
+    background: var(--neutral-1000); color: #fff;
+    padding: 10px 14px; border-radius: var(--radius-lg);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    display: flex; align-items: center; gap: 12px;
+    font-size: 13px;
+    max-width: 360px;
+  }
+  .toast .icon { width: 16px; height: 16px; color: var(--accent-plum); }
+  .toast .undo { font-family: var(--font-mono); font-size: 11px; color: var(--brand-green); margin-left: auto; cursor: pointer; }
+</style>
+</head>
+<body class="card">
+  <div class="eyebrow">Avatars · toast</div>
+  <div class="row">
+    <div class="av-stack">
+      <div class="av" style="background:#3D3B36">JR</div>
+      <div class="av" style="background:#5F5C56">MK</div>
+      <div class="av" style="background:#3AA6B9">AL</div>
+      <div class="av" style="background:#2EA862">PS</div>
+      <div class="av" style="background:var(--bg-2); color: var(--fg-2); font-size:10px;">+4</div>
+    </div>
+    <div class="toast">
+      <span class="icon">✓</span>
+      <span>ADR-0042 saved</span>
+      <span class="undo">UNDO</span>
+    </div>
+  </div>
+</body>
+</html>

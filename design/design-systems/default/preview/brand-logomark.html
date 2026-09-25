@@ -1,0 +1,57 @@
+<!doctype html>
+<!-- @dsCard group="Brand" name="Logomark" subtitle="Hollow square + Signal Orange dot, light & dark" viewport="700x200" -->
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Brand · Logomark</title>
+<link rel="stylesheet" href="_card.css"/>
+<style>
+  .lockup-row { display: flex; align-items: center; gap: 24px; }
+  .mark-tile {
+    width: 120px; height: 120px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--bg-1);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--fg-0);
+  }
+  .mark-tile.dark { background: var(--neutral-1000); color: var(--neutral-50); }
+  .mark-tile svg { width: 64px; height: 64px; }
+  .mark-meta { display: flex; flex-direction: column; gap: 6px; }
+  .owl-svg { width: 64px; height: 64px; }
+</style>
+</head>
+<body class="card">
+  <div class="lockup-row">
+    <div class="mark-tile">
+      <svg class="owl-svg" viewBox="0 0 64 64" fill="none">
+        <path d="M32 6 C 18 6, 10 16, 10 30 C 10 46, 20 58, 32 58 C 44 58, 54 46, 54 30 C 54 16, 46 6, 32 6 Z" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
+        <path d="M14 12 L18 6 L22 14" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M42 14 L46 6 L50 12" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="23" cy="28" r="7.5" stroke="currentColor" stroke-width="2.5"/>
+        <circle cx="41" cy="28" r="7.5" stroke="currentColor" stroke-width="2.5"/>
+        <circle cx="23" cy="28" r="2.2" fill="currentColor"/>
+        <circle cx="41" cy="28" r="2.2" fill="#2EA862"/>
+        <path d="M30 38 L32 42 L34 38 Z" fill="currentColor"/>
+      </svg>
+    </div>
+    <div class="mark-tile dark">
+      <svg class="owl-svg" viewBox="0 0 64 64" fill="none">
+        <path d="M32 6 C 18 6, 10 16, 10 30 C 10 46, 20 58, 32 58 C 44 58, 54 46, 54 30 C 54 16, 46 6, 32 6 Z" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
+        <path d="M14 12 L18 6 L22 14" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M42 14 L46 6 L50 12" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="23" cy="28" r="7.5" stroke="currentColor" stroke-width="2.5"/>
+        <circle cx="41" cy="28" r="7.5" stroke="currentColor" stroke-width="2.5"/>
+        <circle cx="23" cy="28" r="2.2" fill="currentColor"/>
+        <circle cx="41" cy="28" r="2.2" fill="#2EA862"/>
+        <path d="M30 38 L32 42 L34 38 Z" fill="currentColor"/>
+      </svg>
+    </div>
+    <div class="mark-meta">
+      <div class="eyebrow">Logomark · Owl</div>
+      <div style="font-size:15px; max-width:340px;">A geometric owl — rounded head, two ear tufts, a small beak. The right eye is Signal Green. Owls signal pragmatic wisdom: see in the dark, turn the head, decide.</div>
+      <div class="mono tiny muted">assets/logomark.svg</div>
+    </div>
+  </div>
+</body>
+</html>

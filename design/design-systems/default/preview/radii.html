@@ -1,0 +1,27 @@
+<!doctype html>
+<!-- @dsCard group="Spacing" name="Corner radii" subtitle="6 named radii from 2px to pill" viewport="700x180" -->
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Radii</title>
+<link rel="stylesheet" href="_card.css"/>
+<style>
+  .row { display: flex; gap: 14px; align-items: flex-end; }
+  .tile { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .box { width: 64px; height: 64px; background: var(--bg-2); border: 1px solid var(--border); }
+  .pill { width: 96px; height: 32px; background: var(--bg-2); border: 1px solid var(--border); border-radius: 999px; }
+</style>
+</head>
+<body class="card">
+  <div class="eyebrow">Corner radii</div>
+  <div class="row">
+    <div class="tile"><div class="box" style="border-radius:2px"></div><span class="mono tiny muted">xs · 2</span></div>
+    <div class="tile"><div class="box" style="border-radius:4px"></div><span class="mono tiny muted">sm · 4</span></div>
+    <div class="tile"><div class="box" style="border-radius:6px"></div><span class="mono tiny muted">md · 6</span></div>
+    <div class="tile"><div class="box" style="border-radius:10px"></div><span class="mono tiny muted">lg · 10</span></div>
+    <div class="tile"><div class="box" style="border-radius:14px"></div><span class="mono tiny muted">xl · 14</span></div>
+    <div class="tile"><div class="pill"></div><span class="mono tiny muted">pill · 999</span></div>
+  </div>
+  <div class="sm muted">No 16/20/24px radii — anything larger reads consumer-y, off-brand.</div>
+</body>
+</html>

@@ -1,0 +1,52 @@
+<!doctype html>
+<!-- @dsCard group="Components" name="Badges & chips" subtitle="Status badges and filter chips" viewport="700x220" -->
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Components · Badges & chips</title>
+<link rel="stylesheet" href="_card.css"/>
+<style>
+  .badge {
+    font-family: var(--font-mono); font-size: 11px; font-weight: 500;
+    padding: 3px 8px; border-radius: var(--radius-xs);
+    display: inline-flex; align-items: center; gap: 6px;
+    border: 1px solid transparent;
+  }
+  .b-neutral { background: var(--bg-2); color: var(--fg-1); border-color: var(--border); }
+  .b-success { background: var(--state-success-soft); color: var(--state-success); }
+  .b-warning { background: var(--state-warning-soft); color: #8B6308; }
+  .b-danger  { background: var(--state-danger-soft); color: var(--state-danger); }
+  .b-info    { background: var(--state-info-soft); color: var(--state-info); }
+  .b-brand   { background: var(--brand-green-soft); color: #1B6B3D; }
+  .dot { width: 6px; height: 6px; border-radius: 999px; background: currentColor; }
+
+  .chip {
+    font-family: var(--font-sans); font-size: 12px;
+    padding: 4px 10px; border-radius: var(--radius-pill);
+    background: var(--bg-1); border: 1px solid var(--border-strong);
+    color: var(--fg-1); display: inline-flex; align-items: center; gap: 6px;
+  }
+  .chip.active { background: var(--neutral-1000); color: #fff; border-color: var(--neutral-1000); }
+  .x { color: var(--fg-3); }
+</style>
+</head>
+<body class="card">
+  <div class="eyebrow">Status badges</div>
+  <div class="card-row" style="gap:8px;">
+    <span class="badge b-neutral"><span class="dot"></span>draft</span>
+    <span class="badge b-info"><span class="dot"></span>in review</span>
+    <span class="badge b-success"><span class="dot"></span>approved</span>
+    <span class="badge b-warning"><span class="dot"></span>at risk</span>
+    <span class="badge b-danger"><span class="dot"></span>blocked</span>
+    <span class="badge b-brand">v3.2 — current</span>
+  </div>
+  <div class="eyebrow" style="margin-top:6px;">Filter chips</div>
+  <div class="card-row" style="gap:6px;">
+    <span class="chip active">All</span>
+    <span class="chip">Capability</span>
+    <span class="chip">Service</span>
+    <span class="chip">ADR</span>
+    <span class="chip">Owner: platform <span class="x">×</span></span>
+  </div>
+</body>
+</html>

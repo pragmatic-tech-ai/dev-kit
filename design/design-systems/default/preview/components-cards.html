@@ -1,0 +1,43 @@
+<!doctype html>
+<!-- @dsCard group="Components" name="Cards" subtitle="ADR list-item card pattern" viewport="700x220" -->
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Components · Cards</title>
+<link rel="stylesheet" href="_card.css"/>
+<style>
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .card-el {
+    background: var(--bg-1); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 16px;
+    display: flex; flex-direction: column; gap: 8px;
+    transition: border-color var(--duration-fast) var(--ease-out);
+  }
+  .card-el:hover { border-color: var(--border-strong); }
+  .meta { display: flex; gap: 8px; font-family: var(--font-mono); font-size: 11px; color: var(--fg-3); align-items: center; }
+  .title { font-weight: 600; font-size: 15px; color: var(--fg-0); }
+  .body { font-size: 13px; color: var(--fg-2); line-height: 1.5; }
+  .badge {
+    font-family: var(--font-mono); font-size: 10px; font-weight: 500;
+    padding: 2px 6px; border-radius: var(--radius-xs);
+    background: var(--state-success-soft); color: var(--state-success);
+  }
+  .badge.review { background: var(--state-info-soft); color: var(--state-info); }
+</style>
+</head>
+<body class="card">
+  <div class="eyebrow">Cards · ADR list item</div>
+  <div class="grid">
+    <div class="card-el">
+      <div class="meta"><span>ADR-0042</span><span>·</span><span>2026-04-28</span><span class="badge">accepted</span></div>
+      <div class="title">Adopt event sourcing for billing</div>
+      <div class="body">Replace the polling reconciler with an append-only ledger. Reduces drift; pushes complexity into the consumer.</div>
+    </div>
+    <div class="card-el">
+      <div class="meta"><span>ADR-0041</span><span>·</span><span>2026-04-22</span><span class="badge review">in review</span></div>
+      <div class="title">Move auth-service to Rust</div>
+      <div class="body">Latency-sensitive path. Existing Go implementation hits GC pauses under fan-out load.</div>
+    </div>
+  </div>
+</body>
+</html>

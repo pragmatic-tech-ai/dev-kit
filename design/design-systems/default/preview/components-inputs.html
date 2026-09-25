@@ -1,0 +1,36 @@
+<!doctype html>
+<!-- @dsCard group="Components" name="Form inputs" subtitle="Default, focus, error, disabled" viewport="700x230" -->
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Components · Inputs</title>
+<link rel="stylesheet" href="_card.css"/>
+<style>
+  .field { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
+  .label { font-size: 12px; color: var(--fg-2); font-family: var(--font-sans); }
+  .input {
+    font-family: var(--font-sans); font-size: 14px;
+    padding: 8px 12px; border-radius: var(--radius-md);
+    border: 1px solid var(--border-strong); background: var(--bg-1); color: var(--fg-0);
+    outline: none; transition: border-color var(--duration-fast) var(--ease-out);
+  }
+  .input::placeholder { color: var(--fg-3); }
+  .input:focus { border-color: var(--brand-green); box-shadow: 0 0 0 2px var(--brand-green-soft); }
+  .input.err { border-color: var(--state-danger); }
+  .help { font-size: 11px; color: var(--fg-3); }
+  .help.err { color: var(--state-danger); }
+  .row { display: flex; gap: 12px; }
+</style>
+</head>
+<body class="card">
+  <div class="eyebrow">Form fields</div>
+  <div class="row">
+    <div class="field"><span class="label">Workspace name</span><input class="input" value="Atlas"/><span class="help">3–32 characters.</span></div>
+    <div class="field"><span class="label">Slug</span><input class="input" placeholder="acme-platform"/><span class="help">Lowercase, hyphens.</span></div>
+  </div>
+  <div class="row">
+    <div class="field"><span class="label">Email</span><input class="input err" value="not an email"/><span class="help err">Enter a valid email.</span></div>
+    <div class="field"><span class="label">Region</span><input class="input" value="us-east-1" disabled style="opacity:0.6;"/><span class="help">Read-only after creation.</span></div>
+  </div>
+</body>
+</html>

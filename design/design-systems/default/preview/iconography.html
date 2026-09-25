@@ -1,0 +1,43 @@
+<!doctype html>
+<!-- @dsCard group="Brand" name="Iconography" subtitle="Lucide via CDN — 1.5px stroke" viewport="700x280" -->
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Iconography</title>
+<link rel="stylesheet" href="_card.css"/>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  .grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 8px; }
+  .icon-tile { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 4px; border: 1px solid var(--border); border-radius: var(--radius-md); }
+  .icon-tile svg { width: 20px; height: 20px; color: var(--fg-1); stroke-width: 1.5; }
+  .icon-tile .name { font-family: var(--font-mono); font-size: 9px; color: var(--fg-3); }
+</style>
+</head>
+<body class="card">
+  <div class="eyebrow">Iconography · Lucide · 1.5px stroke</div>
+  <div class="grid">
+    <div class="icon-tile"><i data-lucide="layers"></i><span class="name">layers</span></div>
+    <div class="icon-tile"><i data-lucide="git-branch"></i><span class="name">git-branch</span></div>
+    <div class="icon-tile"><i data-lucide="box"></i><span class="name">box</span></div>
+    <div class="icon-tile"><i data-lucide="search"></i><span class="name">search</span></div>
+    <div class="icon-tile"><i data-lucide="settings"></i><span class="name">settings</span></div>
+    <div class="icon-tile"><i data-lucide="plus"></i><span class="name">plus</span></div>
+    <div class="icon-tile"><i data-lucide="check"></i><span class="name">check</span></div>
+    <div class="icon-tile"><i data-lucide="x"></i><span class="name">x</span></div>
+    <div class="icon-tile"><i data-lucide="arrow-right"></i><span class="name">arrow-right</span></div>
+    <div class="icon-tile"><i data-lucide="filter"></i><span class="name">filter</span></div>
+    <div class="icon-tile"><i data-lucide="users"></i><span class="name">users</span></div>
+    <div class="icon-tile"><i data-lucide="file-text"></i><span class="name">file-text</span></div>
+    <div class="icon-tile"><i data-lucide="folder"></i><span class="name">folder</span></div>
+    <div class="icon-tile"><i data-lucide="link"></i><span class="name">link</span></div>
+    <div class="icon-tile"><i data-lucide="play"></i><span class="name">play</span></div>
+    <div class="icon-tile"><i data-lucide="pause"></i><span class="name">pause</span></div>
+    <div class="icon-tile"><i data-lucide="terminal"></i><span class="name">terminal</span></div>
+    <div class="icon-tile"><i data-lucide="cloud"></i><span class="name">cloud</span></div>
+    <div class="icon-tile"><i data-lucide="lock"></i><span class="name">lock</span></div>
+    <div class="icon-tile"><i data-lucide="bell"></i><span class="name">bell</span></div>
+  </div>
+  <div class="sm muted">Lucide via CDN. Sizes: 14 (inline), 16 (UI default), 20 (page-level). Inherit currentColor.</div>
+  <script>lucide.createIcons();</script>
+</body>
+</html>

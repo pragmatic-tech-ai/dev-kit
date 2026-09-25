@@ -1,0 +1,55 @@
+<!doctype html>
+<!-- @dsCard group="Brand" name="Wordmark & Lockup" subtitle="JetBrains Mono Bold with the period as the signal dot" viewport="700x230" -->
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Brand · Wordmark & Lockup</title>
+<link rel="stylesheet" href="_card.css"/>
+<style>
+  .stack { display:flex; flex-direction: column; gap: 12px; }
+  .lockup-tile {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--bg-1);
+    padding: 14px 22px;
+    color: var(--fg-0);
+    display: flex; align-items: center; gap: 14px;
+  }
+  .lockup-tile.dark { background: var(--neutral-1000); color: var(--neutral-50); }
+  .word { font-family: var(--font-mono); font-weight: 700; font-size: 22px; letter-spacing: -0.01em; }
+  .dot { width: 6px; height: 6px; border-radius: 999px; background: var(--brand-green); display: inline-block; margin: 0 1px 2px 1px; }
+  .owl { width: 44px; height: 44px; flex-shrink: 0; }
+</style>
+</head>
+<body class="card">
+  <div class="eyebrow">Wordmark · Lockup</div>
+  <div class="stack">
+    <div class="lockup-tile">
+      <svg class="owl" viewBox="0 0 64 64" fill="none">
+        <path d="M32 6 C 18 6, 10 16, 10 30 C 10 46, 20 58, 32 58 C 44 58, 54 46, 54 30 C 54 16, 46 6, 32 6 Z" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
+        <path d="M14 12 L18 6 L22 14" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M42 14 L46 6 L50 12" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="23" cy="28" r="7.5" stroke="currentColor" stroke-width="2.5"/>
+        <circle cx="41" cy="28" r="7.5" stroke="currentColor" stroke-width="2.5"/>
+        <circle cx="23" cy="28" r="2.2" fill="currentColor"/>
+        <circle cx="41" cy="28" r="2.2" fill="#2EA862"/>
+        <path d="M30 38 L32 42 L34 38 Z" fill="currentColor"/>
+      </svg>
+      <span class="word">pragmatic<span class="dot"></span>labs</span>
+    </div>
+    <div class="lockup-tile dark">
+      <svg class="owl" viewBox="0 0 64 64" fill="none">
+        <path d="M32 6 C 18 6, 10 16, 10 30 C 10 46, 20 58, 32 58 C 44 58, 54 46, 54 30 C 54 16, 46 6, 32 6 Z" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
+        <path d="M14 12 L18 6 L22 14" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M42 14 L46 6 L50 12" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="23" cy="28" r="7.5" stroke="currentColor" stroke-width="2.5"/>
+        <circle cx="41" cy="28" r="7.5" stroke="currentColor" stroke-width="2.5"/>
+        <circle cx="23" cy="28" r="2.2" fill="currentColor"/>
+        <circle cx="41" cy="28" r="2.2" fill="#2EA862"/>
+        <path d="M30 38 L32 42 L34 38 Z" fill="currentColor"/>
+      </svg>
+      <span class="word">pragmatic<span class="dot"></span>labs</span>
+    </div>
+  </div>
+</body>
+</html>

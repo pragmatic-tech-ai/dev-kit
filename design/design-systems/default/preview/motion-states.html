@@ -1,0 +1,34 @@
+<!doctype html>
+<!-- @dsCard group="Spacing" name="Motion & states" subtitle="Ease, durations, hover/press/focus" viewport="700x250" -->
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Motion & States</title>
+<link rel="stylesheet" href="_card.css"/>
+<style>
+  .row { display: flex; gap: 28px; flex-wrap: wrap; align-items: center; }
+  .demo { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+  .demo .l { font-family: var(--font-mono); font-size: 10px; color: var(--fg-3); }
+  .surf { width: 100px; height: 56px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg-1); display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--fg-1); transition: background var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out); cursor: pointer; }
+  .surf.hover { background: var(--bg-2); border-color: var(--border-strong); }
+  .surf.press { background: var(--bg-3); }
+  .surf.focus { box-shadow: 0 0 0 2px var(--brand-green-soft); border-color: var(--brand-green); }
+  .ease-vis { width: 240px; height: 36px; border: 1px solid var(--border); border-radius: var(--radius-md); position: relative; overflow: hidden; }
+  .ease-vis .b { position: absolute; top: 6px; left: 6px; width: 24px; height: 24px; background: var(--brand-green); border-radius: var(--radius-sm); animation: slide 1.6s var(--ease-out) infinite alternate; }
+  @keyframes slide { from { transform: translateX(0) } to { transform: translateX(204px) } }
+</style>
+</head>
+<body class="card">
+  <div class="eyebrow">Motion · ease-out 0.2,0,0,1 · 120 / 200 / 320ms</div>
+  <div class="row">
+    <div class="demo"><div class="ease-vis"><div class="b"></div></div><span class="l">decisive out-curve · no bounces</span></div>
+  </div>
+  <div class="eyebrow" style="margin-top:6px;">Interaction states</div>
+  <div class="row">
+    <div class="demo"><div class="surf">default</div><span class="l">rest</span></div>
+    <div class="demo"><div class="surf hover">hover</div><span class="l">+1 neutral step</span></div>
+    <div class="demo"><div class="surf press">press</div><span class="l">+2 neutral steps · no shrink</span></div>
+    <div class="demo"><div class="surf focus">focus</div><span class="l">2px ring + 2px offset</span></div>
+  </div>
+</body>
+</html>

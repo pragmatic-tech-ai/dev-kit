@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Pragmatic Labs — Architecture, the pragmatic way.</title>
+<meta name="ext-resource-dependency" content="../../assets/illustration-capability-map.svg" data-resource-id="capMap" />
+<link rel="icon" href="../../assets/favicon.svg"/>
+<link rel="stylesheet" href="../../colors_and_type.css"/>
+<template id="__bundler_thumbnail" data-bg-color="#FAFAF9">
+  <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1200" height="800" fill="#FAFAF9"/>
+    <g transform="translate(540, 300)" fill="none">
+      <path d="M60 12 C 30 12, 14 36, 14 64 C 14 100, 36 124, 60 124 C 84 124, 106 100, 106 64 C 106 36, 90 12, 60 12 Z" stroke="#0A0A0B" stroke-width="6" stroke-linejoin="round"/>
+      <path d="M22 24 L30 12 L38 28" stroke="#0A0A0B" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M82 28 L90 12 L98 24" stroke="#0A0A0B" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="42" cy="58" r="15" stroke="#0A0A0B" stroke-width="5"/>
+      <circle cx="78" cy="58" r="15" stroke="#0A0A0B" stroke-width="5"/>
+      <circle cx="42" cy="58" r="4.4" fill="#0A0A0B"/>
+      <circle cx="78" cy="58" r="4.4" fill="#2EA862"/>
+      <path d="M56 78 L60 86 L64 78 Z" fill="#0A0A0B"/>
+    </g>
+    <text x="600" y="480" font-family="monospace" font-size="26" font-weight="700" fill="#0A0A0B" text-anchor="middle" letter-spacing="-0.5">pragmatic labs</text>
+  </svg>
+</template>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg-0); color: var(--fg-1); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+  a:hover { text-decoration: underline; }
+  body { font-size: 15px; line-height: 1.55; }
+</style>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" src="MarketingComponents.jsx"></script>
+<script type="text/babel">
+  function App() {
+    React.useEffect(() => { if (window.lucide) lucide.createIcons(); }, []);
+    return (
+      <div data-screen-label="Marketing — Home">
+        <Nav/>
+        <Hero/>
+        <LogoStrip/>
+        <FeatureGrid/>
+        <Testimonial/>
+        <Pricing/>
+        <Footer/>
+      </div>
+    );
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

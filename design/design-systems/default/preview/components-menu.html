@@ -1,0 +1,45 @@
+<!doctype html>
+<!-- @dsCard group="Components" name="Menu & command palette" subtitle="Dropdown menu and ⌘K palette" viewport="700x240" -->
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Components · Menu & command palette</title>
+<link rel="stylesheet" href="_card.css"/>
+<style>
+  .row { display: flex; gap: 16px; align-items: flex-start; }
+  .menu, .palette {
+    background: var(--bg-1); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); box-shadow: 0 4px 12px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    padding: 6px; min-width: 220px;
+  }
+  .palette { padding: 0; min-width: 360px; }
+  .item { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: var(--radius-md); font-size: 13px; color: var(--fg-1); }
+  .item.sel { background: var(--bg-2); color: var(--fg-0); }
+  .kbd { margin-left: auto; font-family: var(--font-mono); font-size: 10px; color: var(--fg-3); }
+  .sep { height: 1px; background: var(--border); margin: 4px 0; }
+  .palette-input { padding: 12px 14px; font-family: var(--font-sans); font-size: 14px; border-bottom: 1px solid var(--border); color: var(--fg-0); }
+  .palette-list { padding: 6px; }
+  .icon { width: 14px; height: 14px; color: var(--fg-2); }
+</style>
+</head>
+<body class="card">
+  <div class="eyebrow">Menu &amp; command palette</div>
+  <div class="row">
+    <div class="menu">
+      <div class="item"><span class="icon">↻</span>Rename<span class="kbd">R</span></div>
+      <div class="item sel"><span class="icon">↗</span>Open in new tab<span class="kbd">⌘O</span></div>
+      <div class="item"><span class="icon">⇧</span>Move…<span class="kbd">M</span></div>
+      <div class="sep"></div>
+      <div class="item" style="color: var(--state-danger)"><span class="icon">×</span>Delete<span class="kbd">⌫</span></div>
+    </div>
+    <div class="palette">
+      <div class="palette-input mono muted">› <span style="color: var(--fg-0)">create capability</span></div>
+      <div class="palette-list">
+        <div class="item sel"><span class="icon">+</span>Create capability<span class="kbd">↵</span></div>
+        <div class="item"><span class="icon">+</span>Create ADR</div>
+        <div class="item"><span class="icon">⌕</span>Find capability "billing"</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
