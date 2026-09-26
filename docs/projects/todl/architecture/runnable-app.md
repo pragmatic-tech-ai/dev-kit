@@ -72,8 +72,15 @@ carries its own.
 
 `HtmlBundleBuildSystem`
 (`src/solution-services/todl-build-system/html-bundle/html-bundle-build-system.ts`)
-runs eight actions in a fixed order for every architecture project. The build
-system deep-dive page covers the pipeline mechanics (artifact keys,
+runs six actions in a fixed order for every architecture project — but only
+after a declarative up-front check confirms that `generated/model.ts` and
+`generated/app.mu` already exist in the project. Neither file is produced by
+this pipeline: both are project content, written ahead of time by the
+generators described in
+[Project content generators](content-generators.md), and the build's
+`ProjectBuildManager.CheckRequirements` fails fast, before provisioning a
+sandbox or running a single action, if either is missing. The build system
+deep-dive page covers the pipeline mechanics (artifact keys,
 consume-before-produce validation, sandbox promotion); the point that matters
 here is the last few actions, because they are what actually generates the
 code the browser eventually runs:
@@ -81,27 +88,26 @@ code the browser eventually runs:
 1. `ResolveBasesAction` and `CompileModelAction` do what every build does —
    assemble the base closure and compile it into a `CompiledModel`, whose
    `fullDocument` is the entire closure (not just the project's own nodes).
-2. `GenerateModelDtoAction` writes `generated/model.ts` into the project: it
-   reflects `fullDocument` and runs `generateReadClient` (from
-   `src/codegen/read-client.ts`) to produce a typed DTO package — a class
-   extending `ModelDataSource` with one collection getter per concept, plus a
-   `static fromJSON(doc)`.
-3. `GenerateAppUiAction` writes `generated/app.mu` — the default UI.
-4. `GenerateEntryAction` writes `generated/entry.ts` — the wiring that ties
-   the DTO and the UI together and calls the bootstrap.
-5. `CompileMuralAction` compiles every `.mu` file (including the freshly
-   generated one) to `compiled/<basename>.mu.js` via mural's own `compile()`.
-6. `BundleAppAction` runs esbuild over the staged entry point.
-7. `EmitBundledHostAction` renders the final `index.html`, as described above.
+2. `EmitEntryAction` writes `generated/entry.ts` — the wiring that ties the
+   DTO and the UI together and calls the bootstrap — into the build's
+   sandbox, not the project; it is build glue, never committed project
+   content.
+3. `CompileMuralAction` compiles every `.mu` file the project has —
+   including its `generated/app.mu`, required to already be there — to
+   `compiled/<basename>.mu.js` via mural's own `compile()`.
+4. `BundleAppAction` runs esbuild over the staged entry point.
+5. `EmitBundledHostAction` renders the final `index.html`, as described above.
 
-Steps 3 and 4 are worth reading in full, because they are where "what the
-runnable app looks like" is actually decided.
+Step 2 is worth reading in full, because it is the one action left in this
+pipeline that produces code from scratch — everything else either compiles
+what already exists or requires it up front.
 
 ### Generating the entry point
 
-`GenerateEntryAction`
-(`src/solution-services/todl-build-system/html-bundle/generate-entry-action.ts`)
-writes `generated/entry.ts` from a small hoisted template:
+`EmitEntryAction`
+(`src/solution-services/todl-build-system/html-bundle/emit-entry-action.ts`)
+writes `generated/entry.ts` into the build's sandbox from a small hoisted
+template:
 
 ```ts
 import { app } from "../compiled/app.mu.js";
@@ -121,16 +127,19 @@ instance the project's generated UI markup compiles down to. `entry.ts` is
 the file esbuild actually bundles; everything before it in the pipeline exists
 to produce its two imports.
 
-### Generating the UI
+### The UI that ships
 
-`GenerateAppUiAction`
-(`src/solution-services/todl-build-system/html-bundle/generate-app-ui-action.ts`)
-writes `generated/app.mu` by reflecting the compiled model back into a
-`Repository` (via `fromJSON`, from `compiler-services/emit/json.ts`) and
-handing it to `AppUiTemplate.Render` (`app-ui-template.ts`). The template
-walks every `Concept`-kind node in the repository, sorted by id, and emits one
-section per concept inside a root `Application { resources: { StackPanel
-x:root { … } } }` block:
+`generated/app.mu` is not produced by this pipeline at all. By the time the
+build runs, the file is already sitting in the project — written once, at
+project creation, by `UiPlaceholderGenerator` (id `app-ui`; see
+[Project content generators](content-generators.md)).
+The generator reflects the compiled model back into a `Repository` (via
+`fromJSON`, from `compiler-services/emit/json.ts`) and hands it to
+`AppUiTemplate.Render` (`app-ui-template.ts`) — the same template class the
+build used before this generator existed. The template walks every
+`Concept`-kind node in the repository, sorted by id, and emits one section per
+concept inside a root `Application { resources: { StackPanel x:root { … } } }`
+block:
 
 ```
 StackPanel [ Orientation = Vertical, Margin = (0,0,0,16) ] {
@@ -144,21 +153,24 @@ The collection name bound in `$technologies` is not arbitrary — it is
 `generateReadClient` puts on the DTO class for that concept. This is the
 load-bearing contract mentioned in section 7 of the overview: the UI
 generator and the DTO generator must agree on collection naming without ever
-importing from each other, because they run as separate build actions over
-the same reflected `Repository` and only meet at runtime through this string.
-`DisplayMemberPath = "id"` is why every row in the rendered app shows the raw
-entity id rather than a label — there is no per-concept display customization
-in the generated markup today.
+importing from each other, because they run as two independent generators
+over the same reflected `Repository` and only meet at runtime through this
+string. `DisplayMemberPath = "id"` is why every row in the rendered app shows
+the raw entity id rather than a label — there is no per-concept display
+customization in the generated markup today.
 
-`AppUiTemplate` writes a marker as the first line of every file it generates
-(`// @generated by todl build — regenerable`), and `GenerateAppUiAction`
-checks that marker before overwriting an existing `generated/app.mu`: if the
-file exists and its first line isn't the marker, the action treats it as
-hand-authored, skips the write, and reports a warning instead of clobbering a
-developer's edits. This is the mechanism that lets "how entities are shown"
-move from generated boilerplate to a hand-tuned view without leaving the
-generated-file convention — a developer deletes the marker line, edits
-`app.mu` freely, and every subsequent build leaves it alone.
+`UiPlaceholderGenerator` runs with `WritePolicy.WriteOnce`: it writes
+`generated/app.mu` only if the path is absent, and never touches a file that
+is already there — no marker check is needed to protect a hand edit, the
+write policy already guarantees it. `AppUiTemplate` still emits a
+generated-marker first line (`// @generated by todl build — regenerable`),
+but purely as a human-readable signal that the file started out generated;
+nothing in the generator or the build path reads it back to decide anything.
+This is what lets "how entities are shown" move from generated boilerplate to
+a hand-tuned view without any special handling: a developer edits `app.mu`
+freely, and no generator or build action ever overwrites it again. See
+[Project content generators](content-generators.md) for the full
+write-policy story.
 
 ## The bootstrap: wiring with no view knowledge
 
@@ -309,5 +321,6 @@ bundle.
 
 See also:
 - [The build system](build-system.md)
+- [Project content generators](content-generators.md)
 - [Consuming a model](consuming-a-model.md)
 - [The compiler front end](compiler.md)

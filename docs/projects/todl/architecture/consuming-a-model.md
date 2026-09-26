@@ -202,19 +202,23 @@ The generated collection getter name is `pluralize(camelCase(conceptId))` —
 for concept `technology` that is `technologies`; for a taxonomy, the
 collection getter uses the taxonomy's represented concept
 (`repo.represents(t)[0]`) rather than the taxonomy id itself. This is called
-out in the architecture overview as **load-bearing**, and reading the build
-pipeline makes clear why: `GenerateAppUiAction` (section 10) renders a
-`ListBox` per concept in `generated/app.mu` with
-`ItemsSource = $<collection>`, where `<collection>` is computed by the exact
-same `pluralize(camelCase(conceptId))` formula, independently, in the
+out in the architecture overview as **load-bearing**, and reading the
+[project content generators](content-generators.md) story makes clear why:
+`UiPlaceholderGenerator` renders a `ListBox` per concept in `generated/app.mu`
+with `ItemsSource = $<collection>`, where `<collection>` is computed by the
+exact same `pluralize(camelCase(conceptId))` formula, independently, in the
 mural-template generator. The DTO class and the generated view are two
 separate generators agreeing on a naming contract with no shared runtime
-check between them — rename a concept and both sides shift together at the
-next generation, but a hand-edited `app.mu` (preserved by the build's clobber
-guard) that references a stale collection name will silently bind to nothing
-after a concept rename, since mural does not error on an unresolved binding
-path by default. This is the one place in the whole consuming layer where a
-naming heuristic, not a type, is the contract.
+check between them, and the two sides are not kept in lockstep the same way:
+`DtoGenerator` regenerates `generated/model.ts` on every reference change, so
+its collection getters always track the current concept set, but
+`UiPlaceholderGenerator` only ever writes `generated/app.mu` once, at project
+creation (`WritePolicy.WriteOnce`) — hand-edited or not, the file is never
+regenerated afterward. Rename a concept later and the DTO's accessor renames
+with it, while `app.mu`'s `ItemsSource = $<old-name>` keeps pointing at the
+old one and silently binds to nothing, since mural does not error on an
+unresolved binding path by default. This is the one place in the whole
+consuming layer where a naming heuristic, not a type, is the contract.
 
 `model-package.ts`'s `ModelPackageGenerator.Generate` wraps
 `generateReadClient` into a larger, runnable single file: it reuses the
@@ -304,13 +308,15 @@ re-parses or re-validates `.todl` text; that work already happened when the
 model was compiled and emitted (`emit/manifest.ts`, `emit/json.ts`).
 
 Downstream, this is the layer the runnable app and the build system are
-built on. In the html-bundle build (section 10),
-`GenerateModelDtoAction` reflects the project's full compiled closure and
-runs `generateReadClient` to write `generated/model.ts` into the project;
-`GenerateEntryAction` then writes `generated/entry.ts`, which calls
-`<Pkg>.fromJSON(window.__TODL_APP__)` — the exact synchronous `fromJSON` path
-described above — to build the DTO that becomes
-`TodlAppBootstrap.Mount(app, dto)`'s `dataContext`. The generated
+built on. `DtoGenerator` (see
+[Project content generators](content-generators.md)) reflects the project's
+full compiled closure and runs `generateReadClient` to write
+`generated/model.ts` into the project ahead of any build; the html-bundle
+build (section 10) only requires that file be present and never writes it
+itself. At build time, `EmitEntryAction` writes `generated/entry.ts` into the
+build's sandbox, which calls `<Pkg>.fromJSON(window.__TODL_APP__)` — the
+exact synchronous `fromJSON` path described above — to build the DTO that
+becomes `TodlAppBootstrap.Mount(app, dto)`'s `dataContext`. The generated
 `app.mu`'s `ListBox`es bind to that DTO's collection getters by the naming
 contract discussed above. `authoring`'s `ModelDraft` is the one piece of
 this section that is not part of that generated-app path at all — it backs
@@ -322,4 +328,4 @@ application uses.
 
 [← Back to the Architecture overview](../architecture.md)
 
-**See also:** [Manifest and reflection](manifest-reflection.md) · [The build system](build-system.md) · [The runnable app](runnable-app.md)
+**See also:** [Manifest and reflection](manifest-reflection.md) · [The build system](build-system.md) · [Project content generators](content-generators.md) · [The runnable app](runnable-app.md)
