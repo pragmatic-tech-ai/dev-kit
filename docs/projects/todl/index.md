@@ -27,6 +27,7 @@ subsystem.
 - [Publish and packages](architecture/publish-and-packages.md) — the compile-and-persist spine and resolution chain.
 - [Projects and solutions](architecture/projects-and-solutions.md) — project types, closure reassembly, solution builds.
 - [The build system](architecture/build-system.md) — the generic engine and the two build flavours.
+- [Project content generators](architecture/content-generators.md) — how generated/model.ts and generated/app.mu are produced, and the build's require-never-create boundary.
 - [The runnable app](architecture/runnable-app.md) — from index.html to a painted UI.
 - [Tooling](architecture/tooling.md) — the language server, analysis service, CLI, and migrator.
 - [Package surface and dependencies](architecture/package-surface.md) — the export strategy and the dependency graph.

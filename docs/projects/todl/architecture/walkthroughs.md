@@ -69,23 +69,26 @@ This is the `html-bundle` build — the per-project *application compiler*. An
 architecture project is a terminal consumer: it publishes nothing, it produces an
 app.
 
+By the time this build runs, `generated/model.ts` (the typed DTO) and
+`generated/app.mu` (the default view) already exist in the project — they were
+produced earlier, off project lifecycle events, by the `DtoGenerator` and
+`UiPlaceholderGenerator` project content generators, not by this build. See
+[Project content generators](content-generators.md). The build **requires** both
+files and fails fast, before doing anything else, if either is missing.
+
 1. **Resolve and compile** the closure, exactly as in walkthrough B's first two
-   steps, but keeping `fullDocument` (the whole closure) for the generators.
-2. **Generate the DTO.** `GenerateModelDtoAction` reflects `fullDocument` and runs
-   the code generator, writing `generated/model.ts` into the project — the typed
-   client the app programs against. See [Consuming a model](consuming-a-model.md).
-3. **Generate the view.** `GenerateAppUiAction` writes `generated/app.mu`: a mural
-   `Application` with one section per concept — a header plus a `ListBox` bound to
-   the DTO's collection for that concept, with `DisplayMemberPath = "id"`. A
-   clobber guard preserves a hand-edited view.
-4. **Generate the entry.** `GenerateEntryAction` writes `generated/entry.ts`, which
-   imports the compiled app, builds the DTO from `window.__TODL_APP__`, and calls
+   steps, but keeping `fullDocument` (the whole closure) for later stages.
+2. **Emit the entry.** `EmitEntryAction` writes `generated/entry.ts` — into the
+   build **sandbox**, not the project, since it is a fixed template with nothing
+   project-specific to commit. It imports the compiled app, builds the DTO from
+   `window.__TODL_APP__` via the DTO class the generator already wrote, and calls
    the bootstrap.
-5. **Compile the mural, bundle, and emit.** Every `.mu` (including the generated
-   one) is compiled to `compiled/*.mu.js`; esbuild bundles the entry into a single
-   IIFE (`keepNames`, browser target, `development` conditions); and
-   `EmitBundledHostAction` renders one self-contained `index.html` that inlines the
-   model as `window.__TODL_APP__` and the app as a script. Full detail:
+3. **Compile the mural, bundle, and emit.** Every `.mu` under the project
+   (including the project's own `generated/app.mu`) is compiled to
+   `compiled/*.mu.js`; esbuild bundles the entry into a single IIFE (`keepNames`,
+   browser target, `development` conditions); and `EmitBundledHostAction` renders
+   one self-contained `index.html` that inlines the model as
+   `window.__TODL_APP__` and the app as a script. Full detail:
    [The build system](build-system.md).
 
 ## D. What happens when someone opens that index.html
@@ -121,4 +124,4 @@ layered predictable.
 
 [← Back to the Architecture overview](../architecture.md)
 
-**See also:** [The compiler](compiler.md) · [The build system](build-system.md) · [The runnable app](runnable-app.md)
+**See also:** [The compiler](compiler.md) · [The build system](build-system.md) · [Project content generators](content-generators.md) · [The runnable app](runnable-app.md)

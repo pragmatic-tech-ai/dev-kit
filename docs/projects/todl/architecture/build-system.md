@@ -340,19 +340,39 @@ verbatim under `resources/` (excluding `dist/`, `node_modules/`, and `.git/`).
 `HtmlBundleBuildSystem` (`html-bundle/html-bundle-build-system.ts`) applies only to
 `Architecture` projects and produces something categorically different from
 npm-package's output: not a package another project depends on, but a runnable,
-self-contained `index.html` a browser can open directly. Its action order is fixed by a
-controller ruling recorded in the source: it must satisfy consume-before-produce *and*
-a file dependency — `generated/app.mu`, written by `GenerateAppUiAction`, must already
-exist in the project before `CompileMuralAction` walks the project tree looking for
-`.mu` sources to compile.
+self-contained `index.html` a browser can open directly.
+
+`generated/model.ts` (the typed DTO) and `generated/app.mu` (the default view) used to
+be written by actions in this very pipeline. They no longer are. Both are now **project
+content generators** — see [Project content generators](content-generators.md) for the
+full subsystem — that run off project lifecycle events (creation, a changed base
+reference, opening a project that is missing them) independent of any build. This
+pipeline does not create either file; it **requires** them. `HtmlBundleBuildSystem`
+declares that requirement declaratively, on its flavor:
+
+```ts
+private static readonly RequiredContent: readonly RequiredContent[] = [
+    { Path: "generated/model.ts", GeneratorId: "model-dto" },
+    { Path: "generated/app.mu", GeneratorId: "app-ui" },
+];
+```
+
+`ProjectBuildManager.CheckRequirements` walks that list before provisioning a sandbox or
+running a single action — before anything else happens — and fails the build with an
+error naming each missing path plus the generator that owns it, rather than fabricating
+a placeholder or silently proceeding. This is the "require, never create" boundary: a
+project that has never had its generators run (or whose generated files were deleted)
+fails a build with a clear, actionable message instead of a confusing failure several
+actions deep, or a build action quietly recreating content the generators are supposed
+to own.
+
+With that precondition satisfied, the pipeline itself is now six actions, not eight:
 
 ```ts
 private readonly actions: readonly IBuildAction<TodlBuildContext>[] = [
     new ResolveBasesAction(),
     new CompileModelAction(),
-    new GenerateModelDtoAction(),
-    new GenerateAppUiAction(),
-    new GenerateEntryAction(),
+    new EmitEntryAction(),
     new CompileMuralAction(),
     new BundleAppAction(),
     new EmitBundledHostAction(),
@@ -367,51 +387,8 @@ writes as `model.json`), but `.fullDocument`, the full transitive closure. A run
 app has no base packages to resolve at load time, so it needs the whole graph, not a
 package fragment.
 
-**3. GenerateModelDtoAction** (`html-bundle/generate-model-dto-action.ts`) is the first
-producer specific to this system. It reflects `pkg.fullDocument` back into a `Repository`
-via the compiler's own `fromJSON`, then calls `generateReadClient` (§7 of the overview —
-the same codegen used for any typed client) to emit a typed DTO source, writing it to
-`generated/model.ts` **in the project**. It is a project content generator, not a
-sandbox stage, precisely because that file is meant to live under source control next to
-the `.todl` it was generated from — a developer can read it, diff it across model
-changes, or override it.
-
-**4. GenerateAppUiAction** (`html-bundle/generate-app-ui-action.ts`) generates
-`generated/app.mu` — the default view — via `AppUiTemplate.Render(repo)`
-(`html-bundle/app-ui-template.ts`). The template is an `Application` with one
-`resources:` root visual and one section per concept, sorted by concept id for
-determinism. Each section is a header `TextBlock` plus a `ListBox` bound to the matching
-DTO collection:
-
-```
-Application {
-    resources: {
-        StackPanel x:root [ Orientation = Vertical, Margin = (12,12,12,12) ] {
-            StackPanel [ Orientation = Vertical, Margin = (0,0,0,16) ] {
-                TextBlock [ Text = "Technology", FontSize = 15, FontWeight = Bold, Margin = (0,0,0,4) ]
-                ListBox [ ItemsSource = $technologies, DisplayMemberPath = "id" ]
-            }
-        }
-    }
-}
-```
-
-The `$technologies` binding is not a guess — it is `pluralize(camelCase(conceptId))`,
-the exact same naming function `generateReadClient` uses to name the collection getter
-it puts on the generated DTO class (`get technologies(): readonly Technology[]`). The
-two generators never talk to each other directly; they agree on the contract by calling
-the identical naming utility (`codegen/naming.ts`) over the identical concept id, which
-is why the markup resolves against the DTO instance the bootstrap later assigns as its
-`DataContext` with no further wiring. The action also carries a clobber guard: before
-writing, it checks whether `generated/app.mu` already exists and, if so, whether its
-first line equals `AppUiTemplate.GeneratedMarker` (`// @generated by todl build —
-regenerable`). A file that exists but lacks that marker is treated as hand-authored —
-the action reports a warning and leaves it untouched rather than discarding a
-developer's edits. This is "how entities are shown" moved out of any host and into the
-project's own, overridable source.
-
-**5. GenerateEntryAction** (`html-bundle/generate-entry-action.ts`) writes
-`generated/entry.ts` — also into the **project** — by filling a small template:
+**3. EmitEntryAction** (`html-bundle/emit-entry-action.ts`) writes `generated/entry.ts`
+— but into the **sandbox**, not the project, by filling a small template:
 
 ```ts
 import { app } from "../compiled/app.mu.js";
@@ -421,26 +398,33 @@ const dto = {{PkgClass}}.fromJSON((window as any).__TODL_APP__);
 TodlAppBootstrap.Mount(app, dto);
 ```
 
-`{{PkgClass}}` is `pascalCase(manifest.id ?? manifest.name)` — the same DTO class
-`GenerateModelDtoAction` just generated. This is the wiring: rehydrate the model data
+`{{PkgClass}}` is `pascalCase(manifest.id ?? manifest.name)` — the same DTO class name
+the `DtoGenerator` project content generator already wrote into `generated/model.ts`
+before this build ever started (that is exactly what the `model-dto` requirement above
+guarantees). `entry.ts` is fixed build glue: it does not depend on the compiled model's
+shape, only on the manifest's id or name, and it is never hand-edited — which is why it
+belongs in `ctx.Sandbox`, regenerated fresh every build, rather than in `ctx.Project`
+alongside the two generator-owned files. This is the wiring: rehydrate the model data
 that will be inlined into the final page, import the mural `Application` the compiler
-will have produced from `generated/app.mu`, and mount one against the other.
+will have produced from the project's `generated/app.mu`, and mount one against the
+other.
 
-**6. CompileMuralAction** (`html-bundle/compile-mural-action.ts`) is the first action
+**4. CompileMuralAction** (`html-bundle/compile-mural-action.ts`) is the first action
 that writes into the **sandbox** rather than the project — its output is compiled JS,
 build output, never something a developer edits directly. It walks every `.mu` file
 under the project (`StorageTree.Files`, filtered by extension) — hand-authored ones and
-`generated/app.mu` alike, since downstream stages are provenance-blind by file type —
-and compiles each through mural's own `compile()` to `compiled/<basename>.mu.js`.
-Before compiling anything, it precomputes every source's output path and checks for
-collisions: two `.mu` files in different folders that share a basename (`a/app.mu` and
-`b/app.mu`) would both target `compiled/app.mu.js`, silently clobbering one with the
-other. That is reported as an error and the pipeline stops before any file is written,
-rather than emitting a bundle built from whichever file happened to compile last. Any
-compile error (mural's `ParseError`/`EmitError`, or anything else) is likewise reported
-by source file name and stops the pipeline.
+the project's own `generated/app.mu` alike (already required to exist, per above), since
+downstream stages are provenance-blind by file type — and compiles each through mural's
+own `compile()` to `compiled/<basename>.mu.js`. Before compiling anything, it
+precomputes every source's output path and checks for collisions: two `.mu` files in
+different folders that share a basename (`a/app.mu` and `b/app.mu`) would both target
+`compiled/app.mu.js`, silently clobbering one with the other. That is reported as an
+error and the pipeline stops before any file is written, rather than emitting a bundle
+built from whichever file happened to compile last. Any compile error (mural's
+`ParseError`/`EmitError`, or anything else) is likewise reported by source file name and
+stops the pipeline.
 
-**7. BundleAppAction** (`html-bundle/bundle-app-action.ts`) is the most involved action
+**5. BundleAppAction** (`html-bundle/bundle-app-action.ts`) is the most involved action
 in the pipeline. It runs esbuild over the staged entry point with:
 
 ```ts
@@ -490,7 +474,7 @@ known, deferred follow-up: making it work would mean resolving the `default` (bu
 `dist`) condition instead of `development`, and no consumer builds against an installed
 `todl` yet, so the gap has not needed closing.
 
-**8. EmitBundledHostAction** (`html-bundle/emit-bundled-host-action.ts`) is the final
+**6. EmitBundledHostAction** (`html-bundle/emit-bundled-host-action.ts`) is the final
 step, writing into the **sandbox**. It reads `NpmArtifacts.CompiledModel.fullDocument`
 and `HtmlArtifacts.AppBundle` and calls `HtmlShell.Render(JSON.stringify(payload),
 appBundle)`. `HtmlShell` (`html-bundle/html-shell.ts`) is a small, string-constant-only
@@ -502,41 +486,50 @@ accepts exactly the `TodlDocument` shape being inlined.
 
 ### What HtmlArtifacts carries
 
-The four keys in `HtmlArtifacts` (`html-bundle/html-artifacts.ts`) are the thread that
-ties the seven html-bundle-specific actions together: `GeneratedDto` (the path to
-`generated/model.ts`, produced by action 3), `CompiledUi` (the list of compiled `.mu.js`
-sandbox paths, produced by action 6), `AppEntry` (the path to `generated/entry.ts`,
-produced by action 5), and `AppBundle` (the finished bundle string, produced by action 7
-and consumed by action 8). Action 7 is the pipeline's single busiest consumer,
-declaring `Consumes: [AppEntry, CompiledUi, GeneratedDto]` — it needs the entry point to
-bundle, the compiled UI modules to find the app root among, and (transitively, through
-the entry's import of `./model.js`) the generated DTO to exist on disk before it stages
-the tree.
+The three keys in `HtmlArtifacts` (`html-bundle/html-artifacts.ts`) are the thread that
+ties the html-bundle-specific actions together: `AppEntry` (the path to
+`generated/entry.ts`, produced by action 3), `CompiledUi` (the list of compiled `.mu.js`
+sandbox paths, produced by action 4), and `AppBundle` (the finished bundle string,
+produced by action 5 and consumed by action 6). Action 5 (`BundleAppAction`) is the
+pipeline's busiest consumer, declaring `Consumes: [AppEntry, CompiledUi]` — it needs the
+entry point to bundle and the compiled UI modules to find the app root among. There is
+no `GeneratedDto` key any more: `generated/model.ts` is produced before this pipeline
+ever runs, by the `DtoGenerator` project content generator, so nothing inside html-bundle
+needs to pass its path around as a hot value — the build only reads it transitively,
+through the entry point's `import { {{PkgClass}} } from "./model.js"`.
 
-### History note: from a frozen bundle to a compiled app
+### History note: from a frozen bundle to a compiled app, to a generator-owned one
 
-The current design is not the first one. It replaced an earlier approach that inlined a
-single frozen, committed 3.5 MB runtime bundle into every build and injected only the
-model's *data* into it — one shared, static piece of view logic for every project. View
-logic now lives entirely in the project's own generated (and, via the clobber guard,
-overridable) `generated/app.mu`, and the mural runtime that renders it is compiled fresh
-on every build rather than reused verbatim. The trade is a heavier, more moving-parts
-build (a real mural compile plus a real esbuild bundle per project) in exchange for a
-per-project, per-model view that a developer can actually read, diff, and hand-edit.
+The current design has gone through two shapes. It started by inlining a single frozen,
+committed 3.5 MB runtime bundle into every build and injecting only the model's *data*
+into it — one shared, static piece of view logic for every project. That gave way to the
+per-project compiler described above: view logic moved into the project's own generated
+`app.mu`, and the mural runtime that renders it is compiled fresh on every build rather
+than reused verbatim. A second change then moved `generated/model.ts` and
+`generated/app.mu` generation out of this pipeline entirely, into the project content
+generators (see [Project content generators](content-generators.md)) — the build now
+requires both files rather than creating either, and what used to be a build-time clobber
+guard on `generated/app.mu` is now simply `UiPlaceholderGenerator`'s `WriteOnce` policy,
+enforced once, outside any build. The trade is a heavier, more moving-parts build (a real
+mural compile plus a real esbuild bundle per project) in exchange for a per-project,
+per-model view that a developer can actually read, diff, and hand-edit — and, now, edit
+independently of ever running a build at all.
 
 ## Summary: what to remember
 
 The generic engine's whole job is to make a pipeline's shape checkable before it runs
-(consume-before-produce at registration) and its output atomic once it does
-(sandbox-then-promote, only on full success). TODL's two build systems both start the
-same way — resolve bases, compile the closure — and then diverge based on what they are
-building: npm-package stages a package fragment (`.document`) plus source for
-publication; html-bundle reflects the whole closure (`.fullDocument`) into a typed DTO,
-a default UI, and wiring that live in the project itself, compiles and bundles all of
-it, and emits one file a browser can open with nothing else installed.
+(consume-before-produce at registration, plus a declarative `Requires` precondition for
+project content a generator must have already produced) and its output atomic once it
+runs (sandbox-then-promote, only on full success). TODL's two build systems both start
+the same way — resolve bases, compile the closure — and then diverge based on what they
+are building: npm-package stages a package fragment (`.document`) plus source for
+publication; html-bundle requires a typed DTO and a default UI that already live in the
+project (written by generators, not by this pipeline), emits the fixed entry-point glue
+into its sandbox, compiles and bundles all of it, and emits one file a browser can open
+with nothing else installed.
 
 ---
 
 [← Back to the Architecture overview](../architecture.md)
 
-See also: [The runnable app](runnable-app.md) · [Consuming a model](consuming-a-model.md) · [Publish and packages](publish-and-packages.md)
+See also: [Project content generators](content-generators.md) · [The runnable app](runnable-app.md) · [Consuming a model](consuming-a-model.md) · [Publish and packages](publish-and-packages.md)
