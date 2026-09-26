@@ -289,6 +289,39 @@ The result is a clean split of responsibility: this subsystem decides *when* and
 `generated/model.ts` and `generated/app.mu` get (re)written, independent of any build; the build
 system decides only whether they are present, and refuses to guess or fabricate them if not.
 
+## Presentation and .mu as build artifacts
+
+This subsystem's ownership is narrower than "everything a project needs to run": it owns exactly
+two files, both user-editable seed content — the DTO (`generated/model.ts`) and the default app
+UI (`generated/app.mu`). Presentation resources, the resource keys stamped onto them, and compiled
+`.mu` output are a different kind of thing entirely, and they are **not** generator-owned.
+
+Both are purely derived from whatever `.todl` and `.mu` a project already has — there is nothing to
+hand-edit and nothing a developer would ever want to diff against a previous run — so instead of a
+generator, they live on the npm-package build itself (see [The build system](build-system.md)) as
+conditional build artifacts:
+
+- **CompileMuralAction** compiles every `.mu` file the project has, hand-authored or
+  generator-produced alike — the action doesn't care which — into `compiled/*.mu.js`. A project
+  with no `.mu` at all produces none; there is nothing to regenerate or require.
+- **StampResourceKeysAction** and **BakeResourcesAction** run only when the project declares at
+  least one annotation application that inherits (transitively) from the prelude's `MuralResource`
+  annotation (`PresentationResourceEmitter.DeclaresResources`). A project that declares no such
+  annotation has no icons, so there is nothing to stamp onto `model.json` or bake.
+- Baking is gated two more ways: on a host actually supplying a concrete `IPresentationBaker` to
+  `NpmPackageBuildSystem`'s constructor, and on the project being a MetaModel or Library (an
+  Architecture project never bakes, even if it declares resources). The baker runs mural's own
+  include resolver, so it is mural-coupled and lives host-side (Plexus), not in the headless todl
+  package. When no baker is supplied, or the project type doesn't bake, `BakeResourcesAction`
+  skips cleanly rather than failing the build — the headless pipeline never requires one to exist.
+
+That removes the last user-driven step from this corner of the system entirely. There used to be a
+`regeneratePresentation` project-factory capability a developer invoked by hand to refresh a
+`presentation.generated.mu` inspection artifact on demand. Both are gone. The build now produces
+the same presentation output every time it runs — conditionally, deterministically, as ordinary
+build output — with nothing to trigger and nothing that can go stale between a model change and the
+next build.
+
 ---
 
 [← Back to the Architecture overview](../architecture.md)

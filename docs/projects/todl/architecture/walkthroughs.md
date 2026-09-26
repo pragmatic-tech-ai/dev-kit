@@ -54,11 +54,23 @@ their own base document and publish it so downstream projects can build on it.
    `CompiledPackage` with two documents: `document` (own nodes plus recorded
    dependencies — this becomes `model.json`) and `fullDocument` (the whole
    closure, used by generators). A failing compile produces no package.
-3. **Emit the layout.** `EmitPackageLayoutAction` stages a publishable layout into
+3. **Compile the mural and bake presentation, conditionally.** `CompileMuralAction`
+   compiles any `.mu` the project has to `compiled/*.mu.js` (a no-op if it has
+   none). If the project declares at least one annotation application that
+   inherits the prelude's `MuralResource` annotation, `StampResourceKeysAction`
+   stamps a resource key onto each one — landing in `model.json` — and, when a
+   host has supplied a concrete `IPresentationBaker`, `BakeResourcesAction` bakes
+   `presentation.compiled.json` + `icon-index.json` into the package; with no
+   resources declared, or no baker supplied, both steps skip cleanly. See
+   [Project content generators](content-generators.md) for why this is a build
+   artifact rather than generator-owned content.
+4. **Emit the layout.** `EmitPackageLayoutAction` stages a publishable layout into
    the sandbox: `package.json` (transformed from the authored `project.plexus`,
-   pinning each base as an exact scoped dependency), `model.json`, generated
-   `src/`, a browser-safe handle module, and `resources/`.
-4. **Promote and publish.** If every action succeeded, the sandbox is promoted to
+   pinning each base as an exact scoped dependency), `model.json` (now carrying
+   any stamped resource keys), generated `src/`, a browser-safe handle module,
+   and `resources/` (raw `.todl` and raw `.mu` excluded — the latter because step
+   3 already compiled it).
+5. **Promote and publish.** If every action succeeded, the sandbox is promoted to
    the build output. `PackageRegistryClient.publish(dir)` then tars the layout and
    hands it to a registry, from where downstream projects resolve it. See
    [Publish and packages](publish-and-packages.md).

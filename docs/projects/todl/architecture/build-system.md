@@ -296,44 +296,89 @@ export class TodlBuildSystemRegistry extends BuildSystemRegistry<TodlBuildContex
 ```
 
 Two artifact-key classes carry the hot values each system's actions pass around:
-`NpmArtifacts` (`ResolvedBases: TodlDocument[]`, `CompiledModel: CompiledPackage`) is
-shared by both systems, since both start the same way; `HtmlArtifacts` (`GeneratedDto`,
-`CompiledUi`, `AppEntry`, `AppBundle` — all `ArtifactKey<string>` or
-`ArtifactKey<readonly string[]>`) is html-bundle's own.
+`NpmArtifacts` (`ResolvedBases: TodlDocument[]`, `CompiledModel: CompiledPackage`,
+`CompiledMural: readonly string[]`) is shared by both systems, since both start the
+same way; `HtmlArtifacts` (`CompiledUi`, `AppEntry`, `AppBundle` — `ArtifactKey<string>`
+or `ArtifactKey<readonly string[]>`) is html-bundle's own.
 
 ### npm-package: the publishable package layout
 
 `NpmPackageBuildSystem` (`npm/npm-package-build-system.ts`) applies to any publishable
 project — `MetaModel`, `Library`, or `Architecture` (each carries a graph fragment worth
 packaging, even though only meta-models and libraries are meant to be *depended on*).
-Its action list is `ResolveBasesAction → CompileModelAction → [host generators] →
-EmitPackageLayoutAction`, where `[host generators]` is a constructor parameter: the
-headless pipeline runs with none, while a host that has a mural-aware presentation baker
-(Plexus) supplies its own generator (`GeneratePresentationAction`) to slot in after
-compile and before emit — after, because it needs the compiled model; before emit,
-because it may stamp the document the emit action serializes or stage extra files for
-promotion.
+Its constructor takes an optional host `IPresentationBaker`; the headless pipeline runs
+with none supplied. The pipeline is six actions:
 
-`ResolveBasesAction` reads the manifest's `metaModels`/`libraries`/`architectures`
+```ts
+constructor(baker?: IPresentationBaker)
+{
+    this.actions = [
+        new ResolveBasesAction(),
+        new CompileModelAction(),
+        new CompileMuralAction(),
+        new StampResourceKeysAction(),
+        new BakeResourcesAction(baker),
+        new EmitPackageLayoutAction(),
+    ];
+}
+```
+
+**1. ResolveBasesAction** reads the manifest's `metaModels`/`libraries`/`architectures`
 bindings and runs `RecursiveProjectReferencesResolver.Resolve(ctx.Source, bindings)`
-(the same base-closure resolver behind §9's project loading), reporting each
-unresolvable binding as an error diagnostic rather than throwing — which is what stops
-the pipeline on a missing dependency. `CompileModelAction` collects the project's
-`.todl` sources (`TodlProjectSourceFiles.Collect(ctx.Project)`), builds a
-`PackageIdentity` from the manifest, and calls the pure `compilePackage(bases, sources,
-identity, dependencyRefs)` from `src/publish/`; a failing compile reports the compiler's
-own diagnostics and produces no `CompiledModel` artifact, which — by the
-consume-before-produce contract — means every later action's `Consumes` check is
-unsatisfied and the pipeline has already stopped.
+(the same base-closure resolver behind [Projects and solutions](projects-and-solutions.md)),
+reporting each unresolvable binding as an error diagnostic rather than throwing — which
+is what stops the pipeline on a missing dependency.
 
-`EmitPackageLayoutAction` (`npm/emit-package-layout-action.ts`) is the terminal action,
-writing everything into the **sandbox**: `package.json` (via `toPackageJson(manifest)`,
-which pins every base as an exact scoped npm dependency), `model.json` (the compiled
-package's own-nodes-only `document`, plus its recorded `dependencies`), the raw `.todl`
-text under `src/`, a browser-safe handle module (`index.js`/`index.d.ts` — the compiled
-`model.json` inlined as an ES module export, so importing the published package yields
-its document with zero I/O), and every non-`.todl`, non-manifest project file packed
-verbatim under `resources/` (excluding `dist/`, `node_modules/`, and `.git/`).
+**2. CompileModelAction** collects the project's `.todl` sources
+(`TodlProjectSourceFiles.Collect(ctx.Project)`), builds a `PackageIdentity` from the
+manifest, and calls the pure `compilePackage(bases, sources, identity, dependencyRefs)`
+from `src/publish/`; a failing compile reports the compiler's own diagnostics and
+produces no `CompiledModel` artifact, which — by the consume-before-produce contract —
+means every later action's `Consumes` check is unsatisfied and the pipeline has already
+stopped.
+
+**3. CompileMuralAction** reuses the same shared `MuralCompiler` html-bundle's own
+action wraps, compiling every `.mu` file under the project — hand-authored or
+generator-produced, this action doesn't distinguish — to `compiled/*.mu.js` in the
+**sandbox**. A project with no `.mu` files at all yields an empty `CompiledMural`
+artifact and no diagnostic: nothing to compile is not an error.
+
+**4. StampResourceKeysAction** writes a resource key onto every own annotation
+application that inherits (transitively) from the prelude's `MuralResource`
+annotation, mutating the shared `CompiledPackage.document` in place so the stamped
+keys reach `model.json` when it is later serialized. It is gated on
+`PresentationResourceEmitter.DeclaresResources(document, fullDocument)`: a project with
+no MuralResource-derived annotation applications has nothing to stamp, and the action
+is a no-op.
+
+**5. BakeResourcesAction** bakes `presentation/presentation.compiled.json` and
+`presentation/icon-index.json` through the constructor-injected `IPresentationBaker`.
+It runs only when the project `DeclaresResources`, a baker was actually supplied, *and*
+the project is a MetaModel or Library (`OptionsFor` has no bake options for any other
+project type, so an Architecture project never bakes even if it declares resources) —
+any of those conditions failing is a clean skip, not a failure, since the concrete
+baker is mural-coupled and lives host-side (Plexus): the headless todl pipeline never
+requires one to exist. A referenced icon with no readable project file is reported as
+an error and stops the pipeline before promotion.
+
+**6. EmitPackageLayoutAction** is the terminal action, writing everything into the
+**sandbox**: `package.json` (via `toPackageJson(manifest)`, which pins every base as an
+exact scoped npm dependency), `model.json` (the compiled package's own-nodes-only
+`document` — now carrying any resource keys action 4 stamped onto it — plus its recorded
+`dependencies`), the raw `.todl` text under `src/`, a browser-safe handle module
+(`index.js`/`index.d.ts` — the compiled `model.json` inlined as an ES module export, so
+importing the published package yields its document with zero I/O), and every
+non-`.todl`, non-`.mu`, non-manifest project file packed verbatim under `resources/`
+(excluding `dist/`, `node_modules/`, and `.git/`). Raw `.mu` is excluded from
+`resources/` alongside raw `.todl`: action 3 already compiled it into
+`compiled/*.mu.js`, so shipping the source too would double-ship the same view.
+
+Presentation resources, resource keys, and compiled `.mu` are therefore npm-package
+**build artifacts**: the build produces them when a project declares resources or ships
+`.mu`, it does not require them to exist beforehand, and the former user-driven
+`regeneratePresentation` project-factory capability that used to refresh them by hand is
+gone. See [Project content generators](content-generators.md) for how this line sits
+next to the two files that *are* generator-owned.
 
 ### html-bundle: the per-project application compiler
 
