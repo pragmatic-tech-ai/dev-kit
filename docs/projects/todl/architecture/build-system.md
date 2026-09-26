@@ -220,15 +220,18 @@ core types already described:
 
 #### Where flavors stand today
 
-Both TODL build systems currently expose **exactly one** flavor each — `npm-package` and
-`html-bundle` — whose `Id` and `OutputName` match the system id. The multi-flavor
-capability is a designed-in extension seam, not yet exercised by a second variant, and
-the `build-flavor.test.ts` suite pins both the `StaticBuildFlavor` value contract and the
-"each built-in system exposes a single, non-empty-pipeline flavor" invariant. The type
-and `StaticBuildFlavor` were introduced in commit `a623b50` ("feat(build): add BuildFlavor
-+ StaticBuildFlavor, expose Flavors() on systems") as part of the build-system spec, which
-generalized the earlier design where a system carried its output name and pipeline
-directly.
+The multi-flavor capability is no longer just a seam: `NpmPackageBuildSystem` exposes
+**two** flavors — `npm-package` (the seven-action pipeline above, a complete package) and
+`npm-publish` (the same seven actions plus a terminal `PublishPackageAction`) — while
+`HtmlBundleBuildSystem` exposes a single `html-bundle` flavor. All three share the
+convention that a flavor's `Id`, and the two npm flavors share one `OutputName`
+(`npm-package`), since publishing adds a step but stages the same layout. The
+`build-flavor.test.ts` suite pins the `StaticBuildFlavor` value contract, that
+`NpmPackageBuildSystem` exposes two non-empty-pipeline flavors, and that `html-bundle`
+exposes one. The type and `StaticBuildFlavor` were introduced in commit `a623b50`
+("feat(build): add BuildFlavor + StaticBuildFlavor, expose Flavors() on systems") as part
+of the build-system spec, which generalized the earlier design where a system carried its
+output name and pipeline directly.
 
 ### The manager: sequencing, diagnostics, and promotion
 
@@ -306,11 +309,14 @@ or `ArtifactKey<readonly string[]>`) is html-bundle's own.
 `NpmPackageBuildSystem` (`npm/npm-package-build-system.ts`) applies to any publishable
 project — `MetaModel`, `Library`, or `Architecture` (each carries a graph fragment worth
 packaging, even though only meta-models and libraries are meant to be *depended on*).
-Its constructor takes an optional host `IPresentationBaker`; the headless pipeline runs
-with none supplied. The pipeline is six actions:
+Its constructor takes a **required** `IPresentationBaker` — no longer optional. The
+composer always supplies one (TODL's own `DefaultPresentationBaker`, wrapped in a
+`ProviderPresentationBaker` so a host can still override it at bake time — see below),
+so both the headless and hosted pipelines bake the same way. The pipeline is seven
+actions:
 
 ```ts
-constructor(baker?: IPresentationBaker)
+constructor(baker: IPresentationBaker)
 {
     this.actions = [
         new ResolveBasesAction(),
@@ -318,6 +324,7 @@ constructor(baker?: IPresentationBaker)
         new CompileMuralAction(),
         new StampResourceKeysAction(),
         new BakeResourcesAction(baker),
+        new EmitBundleAction(),
         new EmitPackageLayoutAction(),
     ];
 }
@@ -353,15 +360,32 @@ is a no-op.
 
 **5. BakeResourcesAction** bakes `presentation/presentation.compiled.json` and
 `presentation/icon-index.json` through the constructor-injected `IPresentationBaker`.
-It runs only when the project `DeclaresResources`, a baker was actually supplied, *and*
-the project is a MetaModel or Library (`OptionsFor` has no bake options for any other
-project type, so an Architecture project never bakes even if it declares resources) —
-any of those conditions failing is a clean skip, not a failure, since the concrete
-baker is mural-coupled and lives host-side (Plexus): the headless todl pipeline never
-requires one to exist. A referenced icon with no readable project file is reported as
-an error and stops the pipeline before promotion.
+A baker is always present, so the gate is just two conditions: the project
+`DeclaresResources`, *and* the project is a MetaModel or Library (`OptionsFor` has no
+bake options for any other project type, so an Architecture project never bakes even if
+it declares resources). Either failing is a clean skip, not a failure. The default
+baker (`DefaultPresentationBaker`, now living in TODL alongside `PresentationBake`)
+reads icons out of the project, resolves them through mural's include resolver, and
+writes the two files — so the bake runs identically in the headless todl pipeline and in
+a host. The baker reaches the action through `ProviderPresentationBaker`, which resolves
+`PresentationBakerKey` *at bake time*, so a host that registers its own baker under that
+key after composition still overrides the default. A referenced icon with no readable
+project file is reported as an error and stops the pipeline before promotion.
 
-**6. EmitPackageLayoutAction** is the terminal action, writing everything into the
+**6. EmitBundleAction** emits `bundle.json` into the **sandbox** — the load-bearing
+index a host's meta-model browser reads to discover and mount a published package. It
+runs only for a *producer* project (MetaModel or Library); an Architecture project
+carries a graph fragment, not an instantiable palette, so `DiscriminatorFor` returns
+`undefined` and the action is a clean no-op. The `.type` discriminator it writes stays
+exactly `'meta-model'` or `'library'` — the strings the browser keys on. The action
+scans the project for each palette class's template/thumbnail/doc plus the
+asset/doc/sample listings (`ProducerResources.Scan`), folds them onto the classes, and
+writes the assembled `PackageBundle`; an orphan resource file naming no known class is a
+non-blocking warning, not a failure. This ports the bundle-building block out of the
+retired `ProducerProjectFactory.publish()` path, so the npm-package flavor's output is
+now complete without any factory publish step.
+
+**7. EmitPackageLayoutAction** is the terminal action, writing everything into the
 **sandbox**: `package.json` (via `toPackageJson(manifest)`, which pins every base as an
 exact scoped npm dependency), `model.json` (the compiled package's own-nodes-only
 `document` — now carrying any resource keys action 4 stamped onto it — plus its recorded
@@ -373,12 +397,32 @@ non-`.todl`, non-`.mu`, non-manifest project file packed verbatim under `resourc
 `resources/` alongside raw `.todl`: action 3 already compiled it into
 `compiled/*.mu.js`, so shipping the source too would double-ship the same view.
 
-Presentation resources, resource keys, and compiled `.mu` are therefore npm-package
-**build artifacts**: the build produces them when a project declares resources or ships
-`.mu`, it does not require them to exist beforehand, and the former user-driven
+Presentation resources, resource keys, `bundle.json`, and compiled `.mu` are therefore
+npm-package **build artifacts**: the build produces them when a project declares resources
+or ships `.mu`, it does not require them to exist beforehand, and the former user-driven
 `regeneratePresentation` project-factory capability that used to refresh them by hand is
 gone. See [Project content generators](content-generators.md) for how this line sits
 next to the two files that *are* generator-owned.
+
+### npm-publish: publishing as a terminal build action
+
+Publishing is no longer a `factory.publish()` call standing outside the build — it is the
+`npm-publish` flavor, the same seven actions plus one terminal `PublishPackageAction`
+(`npm/publish-package-action.ts`). That action tars the staged sandbox layout through
+`StoragePackagePacker.Pack(ctx.Sandbox)` and pushes it to the registry threaded onto the
+context as `ctx.PublishRegistry`. The pack path is `IStorage`-based (web streams), so it
+is browser-safe: a publish build runs headlessly, in a CLI, or in a renderer alike.
+
+The registry is not a `ServiceKey` seam. It rides the build request as
+`PublishRegistry`, which `TodlProjectBuildManager` (and `SolutionBuildManager`) copy onto
+`TodlBuildContext.PublishRegistry` only when present. A host sets it from
+`SolutionManagerService.PublishRegistry` — the solution's configured registry connection.
+A publish build for a solution with no registry associated fails fast: `PublishPackageAction`
+reports "no registry associated with this solution" as an error diagnostic and writes
+nothing, so a mis-wired publish never half-lands. And because only the `npm-publish`
+flavor appends this action, the plain `npm-package` flavor never touches
+`ctx.PublishRegistry` at all — building a package and publishing it are now the same
+pipeline stopped one action apart.
 
 ### html-bundle: the per-project application compiler
 

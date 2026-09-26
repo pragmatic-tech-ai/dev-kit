@@ -58,21 +58,31 @@ their own base document and publish it so downstream projects can build on it.
    compiles any `.mu` the project has to `compiled/*.mu.js` (a no-op if it has
    none). If the project declares at least one annotation application that
    inherits the prelude's `MuralResource` annotation, `StampResourceKeysAction`
-   stamps a resource key onto each one — landing in `model.json` — and, when a
-   host has supplied a concrete `IPresentationBaker`, `BakeResourcesAction` bakes
-   `presentation.compiled.json` + `icon-index.json` into the package; with no
-   resources declared, or no baker supplied, both steps skip cleanly. See
+   stamps a resource key onto each one — landing in `model.json` — and
+   `BakeResourcesAction` bakes `presentation.compiled.json` + `icon-index.json`
+   into the package. The baker is always present: TODL ships its own
+   `DefaultPresentationBaker`, so this bake is fully self-contained and runs
+   identically headless — a CLI or smoke test needs nothing host-side. The bake
+   skips cleanly only when the project declares no resources, or is an
+   architecture (which has no bake options). See
    [Project content generators](content-generators.md) for why this is a build
    artifact rather than generator-owned content.
-4. **Emit the layout.** `EmitPackageLayoutAction` stages a publishable layout into
-   the sandbox: `package.json` (transformed from the authored `project.plexus`,
-   pinning each base as an exact scoped dependency), `model.json` (now carrying
-   any stamped resource keys), generated `src/`, a browser-safe handle module,
-   and `resources/` (raw `.todl` and raw `.mu` excluded — the latter because step
-   3 already compiled it).
-5. **Promote and publish.** If every action succeeded, the sandbox is promoted to
-   the build output. `PackageRegistryClient.publish(dir)` then tars the layout and
-   hands it to a registry, from where downstream projects resolve it. See
+4. **Emit the bundle and the layout.** `EmitBundleAction` writes `bundle.json` —
+   the index a host's meta-model browser reads to mount the package, keyed on a
+   `'meta-model'`/`'library'` discriminator — for producer projects only.
+   `EmitPackageLayoutAction` then stages the publishable layout into the sandbox:
+   `package.json` (transformed from the authored `project.plexus`, pinning each
+   base as an exact scoped dependency), `model.json` (now carrying any stamped
+   resource keys), generated `src/`, a browser-safe handle module, and
+   `resources/` (raw `.todl` and raw `.mu` excluded — the latter because step 3
+   already compiled it).
+5. **Promote, and optionally publish.** If every action succeeded, the sandbox is
+   promoted to the build output — a complete package. Publishing is a *second
+   flavor*, `npm-publish`: the same pipeline plus a terminal `PublishPackageAction`
+   that tars the staged layout (`IStorage`-based, browser-safe) and pushes it to
+   the registry threaded onto the build context from the solution manager. A
+   solution with no registry associated fails fast — "no registry associated with
+   this solution" — and writes nothing. See
    [Publish and packages](publish-and-packages.md).
 
 ## C. An architecture project becomes a runnable single-page app

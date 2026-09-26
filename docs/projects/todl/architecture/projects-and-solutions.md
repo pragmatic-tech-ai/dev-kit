@@ -186,14 +186,17 @@ path that overwrites everything except a hand-edited root `CLAUDE.md`.
 Meta-model and library projects share one more concrete layer,
 `ProducerProjectFactory`
 (`project-services/core/producer-project-factory-base.ts`), which implements
-`IPublishableProjectFactory`, `IBaseProducingProjectFactory`, and
-`IVersionedProjectFactory`. Because a meta-model and a library are *the same
-thing* internally — both are just a set of taxonomy `.todl` sources compiled
-against resolved bases — this one class owns manifest shape
-(`ProducerManifest`), version get/set, `compileToDocument`, and the
-(now-deprecated) legacy `publish()` path. Presentation is no longer generated
-here: it is baked conditionally by the npm-package build itself (see
-[The build system](build-system.md)), not by any project-factory capability.
+`IBaseProducingProjectFactory` and `IVersionedProjectFactory`. Because a
+meta-model and a library are *the same thing* internally — both are just a set
+of taxonomy `.todl` sources compiled against resolved bases — this one class
+owns manifest shape (`ProducerManifest`), version get/set, and
+`compileToDocument`. The former `publish()` method it used to carry is retired:
+validate, compile, bake presentation, and persist `model.json` + `bundle.json` +
+resource folders all moved into the npm-package build pipeline
+(`emit-bundle-action` / `bake-resources-action` / `publish-package-action` — see
+[The build system](build-system.md)), so a producer factory no longer publishes
+anything itself. Presentation, likewise, is baked conditionally by that build,
+not by any project-factory capability.
 The two concrete subclasses differ only in cosmetic, user-facing details:
 
 - `MetaModelProjectFactory` (`project-services/meta-model-project/meta-model-project-factory.ts`) —
@@ -313,21 +316,20 @@ A few things worth calling out:
   while co-developing a meta-model and the architecture that will consume
   it — `Resolve` still returns everything it *could* reach, plus a
   human-readable message per gap (`'library "foo@1.0.0" is not published'`).
-  Callers decide what to do with `problems`: `ProducerProjectFactory.publish`
-  treats any non-empty `problems` as a hard block (`Publish blocked: …`); the
-  npm-package build's `ResolveBasesAction` (via the shared
-  `ProjectModelProvider` — see
+  Callers decide what to do with `problems`: the npm-package build's
+  `ResolveBasesAction` (via the shared `ProjectModelProvider` — see
   [Project content generators](content-generators.md)) reports each problem
-  as an error diagnostic and stops the pipeline; a live editor-side validator
-  would instead surface it as a diagnostic without refusing to open the
-  project. This non-throwing design is what lets a project stay open and
-  editable while its bases are mid-publish.
+  as an error diagnostic and stops the pipeline, so a publish (the `npm-publish`
+  flavor built on the same pipeline) is blocked before it ever reaches the
+  registry; a live editor-side validator would instead surface it as a
+  diagnostic without refusing to open the project. This non-throwing design is
+  what lets a project stay open and editable while its bases are mid-publish.
 
 `RecursiveProjectReferencesResolver.Resolve` is the one piece of machinery
 shared by both halves of this layer: it is what a single project's
-`compileToDocument`/`publish` calls to gather its bases, and — reused
-unchanged — what a whole-solution build calls per project before compiling it
-inside the build pipeline.
+`compileToDocument` and the build's `ResolveBasesAction` call to gather their
+bases, and — reused unchanged — what a whole-solution build calls per project
+before compiling it inside the build pipeline.
 
 ## Solutions: building many projects together
 

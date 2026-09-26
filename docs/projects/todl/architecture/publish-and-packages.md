@@ -24,9 +24,9 @@ the only thing that changes between "check this model" and "publish this
 model" is whether a store is wired in afterward. The build system's own
 `CompileModelAction` (`src/solution-services/todl-build-system/npm/compile-model-action.ts`)
 is exactly this shape: it calls `compilePackage`, and on success stores the
-resulting `CompiledPackage` as a build artifact — persistence happens two
-actions later, in `EmitPackageLayoutAction`, once the whole pipeline has
-proven it will succeed.
+resulting `CompiledPackage` as a build artifact — persistence happens later in
+the pipeline, in `EmitPackageLayoutAction` (and, on the publish flavor,
+`PublishPackageAction`), once the whole pipeline has proven it will succeed.
 
 ## The two-document CompiledPackage
 
@@ -285,13 +285,20 @@ sketches at a higher level:
    `CompiledPackage` whose own `document.dependencies` records exactly the
    direct bindings (not the whole transitive closure the resolver walked —
    only what was declared).
-4. `EmitPackageLayoutAction` stages `package.json` + `model.json` + `src/` +
-   the handle module + `resources/` into the sandbox; on pipeline success the
-   sandbox is promoted to the project's output directory.
-5. `PackageRegistryClient.publish(dir)` reads that directory, tar+gzips it
-   under `package/`, and calls `registry.Publish(...)` — for
+4. `EmitBundleAction` (for a producer) and `EmitPackageLayoutAction` stage
+   `bundle.json` + `package.json` + `model.json` + `src/` + the handle module +
+   `resources/` into the sandbox; on pipeline success the sandbox is promoted to
+   the project's output directory.
+5. On the `npm-publish` flavor, a terminal `PublishPackageAction` then packs the
+   staged sandbox (`StoragePackagePacker.Pack`, `IStorage`-based so it is
+   browser-safe) and calls `registry.Publish(...)` on the registry threaded onto
+   the build context from `SolutionManagerService.PublishRegistry` — for
    `LocalNpmRegistry`, that writes `<name>/<version>/package.tgz` +
-   `package.json` plus the unpacked payload.
+   `package.json` plus the unpacked payload. A solution with no registry
+   associated fails the publish with "no registry associated with this solution"
+   and writes nothing. (The plain `npm-package` flavor stops after step 4, a
+   complete package with nothing pushed; `PackageRegistryClient.publish(dir)`
+   remains as the lower-level client primitive.)
 6. A second project that declares this library as a binding runs its own
    `ResolveBasesAction`. If nothing has cached it yet, the chain's
    `RegistrySource` fetches the tarball, `TarReader` extracts

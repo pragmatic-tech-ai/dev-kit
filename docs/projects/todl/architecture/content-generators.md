@@ -123,14 +123,19 @@ anything.
 
 `ProjectGeneratorRegistry` (`project-generator-registry.ts`) is a small two-index structure: a
 `{ projectType → generators[] }` map (`For(projectType)`, what the scheduler iterates) and a
-global `{ id → generator }` lookup (`Get(id)`) that rejects a second registration of the same id.
-It is assembled once, by `GeneratorRegistryContribution` (`src/application/generator-registry-contribution.ts`),
-from two sources: every project factory that implements `IGeneratingProjectFactory` — detected
-through the `providesGenerators` type guard, which just checks that `Generators` is a function on
-the factory — contributes the generators it returns, keyed under that factory's `typeId`; and any
-`Extra` build-registered generators the host supplies on top are layered in the same way. The
-registry, once built, is registered into composition under `ProjectGeneratorRegistryKey` so any
-part of the host can resolve it.
+global `{ id → generator }` lookup (`Get(id)`). `Register(projectType, generator)` is idempotent
+by generator id — a second registration of the same id is a silent no-op, so a generator that a
+factory contributes *and* a host layers in on top converges to one entry rather than erroring.
+`RegisterDefinition(provider, def)` is the token-based variant: it resolves a `GeneratorDefinition`'s
+`Generator` service token through the provider and registers the instance.
+
+It is assembled once, by `ProjectSystemComposer.Compose` (`project-services/composition/project-system-composer.ts`) —
+the single unified seeder that superseded the retired `GeneratorRegistryContribution`. The composer
+seeds the registry from the resolved built-in factory instances: every factory that implements
+`IGeneratingProjectFactory` — detected through the `providesGenerators` type guard, which just
+checks that `Generators` is a function on the factory — contributes the generators it returns, keyed
+under that factory's `typeId`. It registers the assembled registry as a DI singleton under
+`ProjectGeneratorRegistryKey` so any part of the host can resolve it.
 
 ## The event bus and the scheduler
 
@@ -142,7 +147,7 @@ registered under `ProjectEventsKey` — a project factory resolves that key *opt
 is registered, it simply doesn't raise, so a host with no generator subsystem wired up is
 unaffected.
 
-`GeneratorScheduler` (`generator-scheduler.ts`) is the one subscriber `GeneratorRegistryContribution`
+`GeneratorScheduler` (`generator-scheduler.ts`) is the one subscriber `ProjectSystemComposer`
 puts on that bus. Its `Handle(event)` does one of two things:
 
 - For `Created` and `ReferencesChanged`, it maps the event kind to the matching `GeneratorTrigger`
@@ -212,7 +217,7 @@ export interface IGeneratingProjectFactory
 }
 ```
 
-`providesGenerators(factory)` is the type guard `GeneratorRegistryContribution` uses to detect it
+`providesGenerators(factory)` is the type guard `ProjectSystemComposer` uses to detect it
 — it just checks that `Generators` is a function on the factory, so a factory that doesn't
 implement the interface is skipped rather than erroring. `ArchitectureProjectFactory` is the only
 concrete factory that implements it today:
@@ -243,8 +248,9 @@ private async raiseCreated(storage: IStorage): Promise<void>
 ```
 
 Two details matter here. First, the event fires only if a `ProjectEventsKey` service happens to be
-registered — an existing host that predates the generators subsystem, or one that never wires
-`GeneratorRegistryContribution` in, simply never raises and is completely unaffected. Second, the
+registered — an existing host that predates the generators subsystem, or one that never composes
+`TodlProjectSystemModule` (or the headless `ProjectSystemContribution`), simply never raises and is
+completely unaffected. Second, the
 manifest on the event is re-parsed through the package-manager's own `parseManifest`, not passed
 through from whatever manifest shape the factory itself was working with — the event needs to carry
 the package-manager `ProjectManifest` shape, because that is what `ProjectModelProvider` (and, in
@@ -308,12 +314,14 @@ conditional build artifacts:
   least one annotation application that inherits (transitively) from the prelude's `MuralResource`
   annotation (`PresentationResourceEmitter.DeclaresResources`). A project that declares no such
   annotation has no icons, so there is nothing to stamp onto `model.json` or bake.
-- Baking is gated two more ways: on a host actually supplying a concrete `IPresentationBaker` to
-  `NpmPackageBuildSystem`'s constructor, and on the project being a MetaModel or Library (an
-  Architecture project never bakes, even if it declares resources). The baker runs mural's own
-  include resolver, so it is mural-coupled and lives host-side (Plexus), not in the headless todl
-  package. When no baker is supplied, or the project type doesn't bake, `BakeResourcesAction`
-  skips cleanly rather than failing the build — the headless pipeline never requires one to exist.
+- Baking is gated one more way: on the project being a MetaModel or Library (an Architecture
+  project never bakes, even if it declares resources — `OptionsFor` has no bake options for it).
+  The baker itself is always present now: TODL ships its own `DefaultPresentationBaker`, which the
+  composer registers unconditionally under `PresentationBakerKey`, so the bake runs identically in
+  the headless todl package and in a host. A host that needs different behaviour re-registers that
+  key and the build resolves the override at bake time (through `ProviderPresentationBaker`). When
+  the project declares no resources, or its type doesn't bake, `BakeResourcesAction` skips cleanly
+  rather than failing.
 
 That removes the last user-driven step from this corner of the system entirely. There used to be a
 `regeneratePresentation` project-factory capability a developer invoked by hand to refresh a

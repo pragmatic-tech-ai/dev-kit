@@ -501,11 +501,17 @@ through generics). The contract:
 by `TodlBuildSystemRegistry`.
 
 **npm-package** (applies to MetaModel ∨ Library ∨ Architecture) — produces a
-publishable package layout. Actions:
-`ResolveBasesAction → CompileModelAction → [host generators] → EmitPackageLayoutAction`.
-It resolves the base closure, compiles to a `CompiledPackage`, optionally bakes
-presentation, and stages `package.json` + `model.json` + `src/` + a browser-safe
-handle module + `resources/` into the sandbox.
+publishable package layout. Seven actions:
+`ResolveBasesAction → CompileModelAction → CompileMuralAction → StampResourceKeysAction → BakeResourcesAction → EmitBundleAction → EmitPackageLayoutAction`.
+It resolves the base closure, compiles to a `CompiledPackage`, compiles any `.mu`,
+conditionally stamps resource keys and bakes presentation (through TODL's own
+`DefaultPresentationBaker`, always present — a host may override it via
+`PresentationBakerKey`), emits `bundle.json` for producer projects, and stages
+`package.json` + `model.json` + `src/` + a browser-safe handle module +
+`resources/` into the sandbox. A second flavor, **npm-publish**, appends a terminal
+`PublishPackageAction` that packs the sandbox and pushes it to the registry threaded
+from the solution manager; with no registry associated it fails fast and writes
+nothing.
 
 **html-bundle** (Architecture only) — compiles a project into a runnable
 single-page app. This is the per-project *application compiler*. Before any
@@ -690,18 +696,23 @@ diagnostics — query it via `Entity`, or emit it.
 
 `TodlProjectBuildManager.Build({ …, BuildSystemId: "npm-package" })` runs
 ResolveBases (reassemble the closure through the package-source chain) → CompileModel
-(`compilePackage` → `CompiledPackage`) → EmitPackageLayout (stage `package.json` +
-`model.json` + `src/` + resources into the sandbox). On success the sandbox is
-promoted to the output; `PackageRegistryClient.publish(dir)` then tars it and hands
-it to an `IPackageRegistry`, from where downstream projects resolve it.
+(`compilePackage` → `CompiledPackage`) → CompileMural → StampResourceKeys →
+BakeResources (conditional) → EmitBundle (producer `bundle.json`) → EmitPackageLayout
+(stage `package.json` + `model.json` + `src/` + resources into the sandbox). On
+success the sandbox is promoted to the output — a complete package. The `npm-publish`
+flavor adds a terminal `PublishPackageAction` that packs the sandbox and pushes it to
+the `IPackageRegistry` threaded from the solution manager, from where downstream
+projects resolve it.
 
 ### C. An architecture project becomes a runnable single-page app
 
-The `html-bundle` build resolves + compiles the closure, generates
-`generated/model.ts` (DTO), `generated/app.mu` (per-concept UI), and
-`generated/entry.ts` (wiring), compiles every `.mu` with mural, bundles the entry
-with esbuild (keepNames, IIFE), and emits one self-contained `index.html` inlining
-the model as `window.__TODL_APP__` and the app as a script.
+The `html-bundle` build **requires** `generated/model.ts` (DTO) and
+`generated/app.mu` (per-concept UI) to already exist — content the project
+generators own, not this build (see §10) — and fails fast if either is missing. It
+resolves + compiles the closure, emits `generated/entry.ts` (wiring) into the
+sandbox, compiles every `.mu` with mural, bundles the entry with esbuild (keepNames,
+IIFE), and emits one self-contained `index.html` inlining the model as
+`window.__TODL_APP__` and the app as a script.
 
 ### D. What happens when someone opens that index.html
 
