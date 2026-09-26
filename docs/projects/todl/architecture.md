@@ -708,7 +708,7 @@ projects resolve it.
 
 The `html-bundle` build **requires** `generated/model.ts` (DTO) and
 `generated/app.mu` (per-concept UI) to already exist — content the project
-generators own, not this build (see §10) — and fails fast if either is missing. It
+generators own, not this build (§10) — and fails fast if either is missing. It
 resolves + compiles the closure, emits `generated/entry.ts` (wiring) into the
 sandbox, compiles every `.mu` with mural, bundles the entry with esbuild (keepNames,
 IIFE), and emits one self-contained `index.html` inlining the model as

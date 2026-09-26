@@ -223,9 +223,10 @@ core types already described:
 The multi-flavor capability is no longer just a seam: `NpmPackageBuildSystem` exposes
 **two** flavors — `npm-package` (the seven-action pipeline above, a complete package) and
 `npm-publish` (the same seven actions plus a terminal `PublishPackageAction`) — while
-`HtmlBundleBuildSystem` exposes a single `html-bundle` flavor. All three share the
-convention that a flavor's `Id`, and the two npm flavors share one `OutputName`
-(`npm-package`), since publishing adds a step but stages the same layout. The
+`HtmlBundleBuildSystem` exposes a single `html-bundle` flavor. Each flavor carries its
+own selector `Id` — `npm-package`, `npm-publish`, and `html-bundle` respectively — while
+the two npm flavors deliberately share one `OutputName` (`npm-package`), since publishing
+stages the same layout and only adds a push step on top of it. The
 `build-flavor.test.ts` suite pins the `StaticBuildFlavor` value contract, that
 `NpmPackageBuildSystem` exposes two non-empty-pipeline flavors, and that `html-bundle`
 exposes one. The type and `StaticBuildFlavor` were introduced in commit `a623b50`

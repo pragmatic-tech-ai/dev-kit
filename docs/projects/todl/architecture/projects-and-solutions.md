@@ -193,7 +193,8 @@ owns manifest shape (`ProducerManifest`), version get/set, and
 `compileToDocument`. The former `publish()` method it used to carry is retired:
 validate, compile, bake presentation, and persist `model.json` + `bundle.json` +
 resource folders all moved into the npm-package build pipeline
-(`emit-bundle-action` / `bake-resources-action` / `publish-package-action` — see
+(`bake-resources-action`, `emit-bundle-action`, `emit-package-layout-action`, and —
+on the publish flavor — `publish-package-action`; see
 [The build system](build-system.md)), so a producer factory no longer publishes
 anything itself. Presentation, likewise, is baked conditionally by that build,
 not by any project-factory capability.
