@@ -1,12 +1,8 @@
 name: Process docs-removal tickets
 
-# Automated sibling of the on-demand `.claude/agents/docs-removal.md` agent: runs
-# Claude Code headless to clear the docs-removal backlog — remove the flagged text,
-# commit to main (which rebuilds Pages), and close each ticket.
-#
-# REQUIRES a repository secret `ANTHROPIC_API_KEY`. Until it is set, this workflow
-# fails fast and harmlessly; nothing else is affected. Set it with:
-#   gh secret set ANTHROPIC_API_KEY --repo pragmatic-tech-ai/dev-kit
+# Runs GitHub Copilot CLI to clear the docs-removal backlog — remove the flagged
+# text, commit to main (which rebuilds Pages), and close each ticket. The
+# organization must allow Copilot CLI billed to the organization.
 on:
   # Fire as soon as a ticket is filed (the select-to-ticket UI applies the label).
   issues:
@@ -24,6 +20,7 @@ concurrency:
 permissions:
   contents: write
   issues: write
+  copilot-requests: write
 
 jobs:
   process:
@@ -35,6 +32,16 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install GitHub Copilot CLI
+        run: npm install -g @github/copilot
 
       - name: Configure git identity
         run: |
@@ -42,19 +49,13 @@ jobs:
           git config user.email "evgen.napryaglo@gmail.com"
 
       - name: Run the docs-removal agent
-        uses: anthropics/claude-code-action@v1
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          prompt: >-
-            Read the file .claude/agents/docs-removal.md and follow its
-            instructions exactly to process every open docs-removal ticket:
-            remove the flagged text from the referenced page under docs/, commit
-            directly to main, push, and close each processed issue with a comment
-            linking the commit. Skip and comment on any ticket you cannot resolve
-            with confidence.
-          claude_args: >-
-            --allowedTools "Bash,Read,Edit,Grep,Glob"
-            --max-turns 40
+        run: >-
+          copilot
+          --agent docs-removal
+          --prompt "Process every open docs-removal ticket following the docs-removal agent instructions."
+          --allow-tool='shell(gh:*), shell(git:*), read, write'
+          --no-ask-user
+          -s

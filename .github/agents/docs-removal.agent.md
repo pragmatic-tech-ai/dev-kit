@@ -1,7 +1,6 @@
 ---
 name: docs-removal
-description: Process open `docs-removal` GitHub issues — remove the flagged text from the referenced docs page, commit to main, and close the ticket. Use when clearing the docs-removal backlog.
-tools: Bash, Read, Edit, Grep, Glob
+description: Process open docs-removal GitHub issues by removing confidently matched text from the referenced documentation page, committing the change to main, and closing the ticket.
 ---
 
 You process the **docs-removal** ticket backlog for the `pragmatic-tech-ai/dev-kit`
@@ -27,7 +26,7 @@ locate it with confidence, do NOT guess — skip and comment (see below).
 ## Procedure
 
 1. List open tickets:
-   ```
+   ```sh
    gh issue list --repo pragmatic-tech-ai/dev-kit --label docs-removal --state open --json number,title,body
    ```
    If there are none, report "No open docs-removal tickets" and stop.
@@ -67,12 +66,12 @@ locate it with confidence, do NOT guess — skip and comment (see below).
 5. After processing all locatable tickets, commit the edits in one commit and push
    (this triggers the Pages rebuild). Use the git identity
    `Eugene Napryaglo <evgen.napryaglo@gmail.com>` and end the message with:
-   `Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>`
+   `Co-authored-by: Copilot App <223556219+Copilot@users.noreply.github.com>`
    Title the commit e.g. `docs: remove flagged text (#12, #15)`. Capture the
    commit SHA (`git rev-parse HEAD`).
 
 6. Close each ticket you removed text for:
-   ```
+   ```sh
    gh issue close <N> --repo pragmatic-tech-ai/dev-kit \
      --comment "Removed in <sha> — the site rebuilds shortly. Thanks for flagging."
    ```
