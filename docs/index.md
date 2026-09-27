@@ -17,6 +17,12 @@ Start with the **[projects overview](projects/)**, or jump straight in:
 - **[Fresco](projects/fresco/)** — the hierarchical layout engine.
 - **[Plexus](projects/plexus/)** — the desktop workbench that hosts it all.
 
+## Studies
+
+- **[GPUI / Rust Migration — Feasibility Study](gpui-rust-migration.md)** — can the
+  UI stack be rebuilt natively in Rust on GPUI? What was proven with working code,
+  the code-editor and web questions, the composition model, and the token budget.
+
 ---
 
 This site is served from [`pragmatic-tech-ai/dev-kit`](https://github.com/pragmatic-tech-ai/dev-kit)
