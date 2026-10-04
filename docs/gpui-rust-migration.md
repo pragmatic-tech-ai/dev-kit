@@ -133,8 +133,8 @@ GPUI supplies only the raw event; hit-testing and state live in our tree.
 
 ### Custom window chrome
 
-Assessed (not yet probed), and a strong yes: **Zed's entire window chrome is
-custom-drawn on GPUI** — custom title bars, min/max/close, rounded corners,
+**Probed and confirmed on Windows 11** (`research/rust_migration/window-chrome-probe`),
+and a strong yes: **Zed's entire window chrome is custom-drawn on GPUI** — custom title bars, min/max/close, rounded corners,
 transparency — so this is a first-class capability, not a stretch. The current
 Plexus approach (a frameless Electron window with a mural-painted title bar and a
 draggable region) maps over directly: GPUI client-side decorations turn off the
@@ -148,9 +148,44 @@ transparent/blurred backgrounds.
 Two platform nuances are the actual work: on **macOS**, keep and *position* the
 native traffic lights rather than reinventing them; on **Windows 11**, the
 maximize-button **Snap Layouts** hover requires reporting custom caption buttons
-to the OS via window hit-testing (`WM_NCHITTEST`) — Zed implements this, so the
-pattern exists to follow. A frameless-window-with-custom-chrome probe (~80–120
-lines) would confirm the Windows Snap-Layout path, the one genuinely fiddly part.
+to the OS via window hit-testing (`WM_NCHITTEST`).
+
+The probe settled the Windows side. A frameless window
+(`TitlebarOptions { appears_transparent: true }` plus client decorations) carries a
+Plexus-style title bar — app icon, in-bar buttons, a drag region, and
+minimize/maximize/close — implemented twice and switchable at runtime:
+
+- **Element path:** each region is a `div` tagged with
+  `.window_control_area(WindowControlArea::Drag | Min | Max | Close)`.
+- **Mural (Option A) path:** one `canvas` paints the whole bar from our own
+  layout, registers a hitbox per region in prepaint (`window.insert_hitbox`), and
+  hands the OS its role in paint with `window.insert_window_control_hitbox(area,
+  hitbox)`. Hover highlighting comes from our own hit-test, not GPUI element hover.
+  This is the seam a natively-ported Mural title bar would use — no `div` needed.
+
+GPUI answers `WM_NCHITTEST` from those hitboxes with `HTCAPTION` / `HTMINBUTTON` /
+`HTMAXBUTTON` / `HTCLOSE`, so **the OS owns** the drag, Aero Snap,
+double-click-maximize, the Snap Layouts flyout, and the min/max/close actions
+themselves (GPUI performs them on the non-client button-up). Resize edges come
+from the default frame hit-test. Our app still receives the non-client
+mouse-down as an ordinary `MouseDownEvent`, so it can observe chrome clicks — but
+it **must not stop propagation** there, or the native action is cancelled. Acrylic
+backdrop (`WindowBackgroundAppearance::Blurred`) and active/inactive title dimming
+(`observe_window_activation`) also work; maximize state comes from
+`observe_window_bounds` + `is_maximized()` to swap the restore glyph (Segoe Fluent
+Icons `E921`/`E922`/`E923`/`E8BB`).
+
+Three gotchas found in GPUI 0.2.2's Windows backend:
+
+- **Control-area lookup is first-registered, not topmost.** GPUI walks the control
+  hitboxes in paint order and returns the first one under the cursor, so a drag
+  region that overlaps the buttons would swallow them. Keep control regions
+  disjoint (or register buttons before the drag area).
+- **`window.show_window_menu()` is a no-op on Windows** (implemented for Linux
+  only), so clicking the app icon cannot open the system menu through GPUI. The
+  native menu still appears on right-click of an `HTCAPTION` region and Alt+Space.
+- **`window.window_decorations()` reports `Server` on Windows** even for a
+  frameless window — the backend doesn't implement it. Don't branch on it there.
 
 ### Cross-platform input
 
@@ -165,10 +200,51 @@ wheel line steps) even though `pixel_delta` normalizes the number; and correct
 text entry (dead keys, CJK/IME) uses GPUI's input-handler path, not raw
 keystrokes. All three are application-level concerns, not GPUI limitations.
 
+### Multi-window and panel tear-off
+
+**Probed and confirmed on Windows 11** (`research/rust_migration/multi-window-probe`).
+One GPUI `App` hosts several OS windows, and panels **move between them as the
+same live entity** — a panel is an `Entity<PanelView>` owned by an app-level dock
+model, and a window is just a place that renders it. Moving a panel therefore
+preserves everything with no serialization: its state (a keyboard counter kept
+its value), its `FocusHandle` (re-focusable and typing in the new window), its
+animation (`request_animation_frame` keeps running per window, including while
+the OS is dragging that window), and its subscriptions (one shared model observed
+by every panel updated all windows at once). This maps directly onto Plexus's
+existing model/view split and the planned tear-off backlog item.
+
+The interaction is the Chrome/VS Code style:
+
+- **Tear-off by dragging a tab out.** GPUI calls `SetCapture` on mouse-down, so
+  move events keep arriving (in client coordinates, outside the viewport) after
+  the cursor leaves the window. A **window-level** listener
+  (`window.on_mouse_event::<MouseMoveEvent>`, registered at paint time) is needed
+  for that — element `on_mouse_move` is hit-tested and stops firing outside the
+  window. Once outside, a new window opens under the cursor (`cx.open_window`,
+  deferred out of the current update) and the still-held button is handed to the
+  OS move loop: `ReleaseCapture` + `PostMessageW(hwnd, WM_SYSCOMMAND, SC_DRAGMOVE)`.
+  The new window follows the cursor until release.
+- **Re-dock by dropping a floating window onto the main tab strip.** The floating
+  window's `observe_window_bounds` fires on every `WM_MOVE`, including inside the
+  OS move loop; it tests the global cursor against the main window's strip
+  (`GetCursorPos` + `ScreenToClient`) to highlight the drop zone, and a short
+  async poll detects the button release that ends the move loop and docks the
+  panel. Closing a floating window (`on_window_should_close`) and an explicit
+  "Dock back" button also re-dock.
+
+**The gap is small and platform-local:** GPUI 0.2.2 exposes no window-move or
+set-position API on Windows (`start_window_move` is a no-op there), so the
+live-follow drag and the cross-window cursor test use ~60 lines of Win32 via the
+`windows` crate and the window's `raw-window-handle`. A production implementation
+would wrap these behind a small per-OS trait (macOS: `performWindowDragWithEvent`;
+Linux: the compositor move request GPUI already implements). Tearing off without
+a drag (open the window at a position) is pure GPUI.
+
 ### Still unproven at the substrate level
 
-Multi-window tear-off was not tested; custom window chrome was assessed but not
-probed; and the 150%-scaling crispness was confirmed only numerically, not
+Custom window chrome and multi-window tear-off are proven on Windows but not yet
+on macOS (traffic-light positioning, window-drag hand-off) or Linux; and the
+150%-scaling crispness was confirmed only numerically, not
 stress-tested at higher fractional scales. None is a blocker; all are "known GPUI
 features to wire up."
 
