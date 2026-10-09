@@ -93,10 +93,10 @@ that was generated and then hand-edited are indistinguishable to the compiler,
 exactly the way `tsc` treats a `.ts` file the same however it was produced.
 
 This is what makes generated content safe to check in and safe to override. The
-build system's application compiler, for instance, generates a `generated/app.mu`
-view for a project but will not clobber it if you have edited it — and the
-compiler treats your edited version and the generated one identically because
-both are simply `.mu` files. The same principle lets the load path record a
+project content generators, for instance, scaffold a project's `src/app.mu` view
+once but will not clobber it if you have edited it — and the compiler treats your
+edited version and the scaffolded one identically because both are simply `.mu`
+files. The same principle lets the load path record a
 `provenance` map (which source URI a node came from) as *metadata* for tooling,
 without ever letting provenance change the meaning of the code.
 

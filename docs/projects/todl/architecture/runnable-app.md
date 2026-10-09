@@ -73,29 +73,30 @@ carries its own.
 `HtmlBundleBuildSystem`
 (`src/solution-services/todl-build-system/html-bundle/html-bundle-build-system.ts`)
 runs six actions in a fixed order for every architecture project — but only
-after a declarative up-front check confirms that `generated/model.ts` and
-`generated/app.mu` already exist in the project. Neither file is produced by
-this pipeline: both are project content, written ahead of time by the
-generators described in
-[Project content generators](content-generators.md), and the build's
-`ProjectBuildManager.CheckRequirements` fails fast, before provisioning a
-sandbox or running a single action, if either is missing. The build system
-deep-dive page covers the pipeline mechanics (artifact keys,
-consume-before-produce validation, sandbox promotion); the point that matters
-here is the last few actions, because they are what actually generates the
-code the browser eventually runs:
+after a declarative up-front check confirms that the project's four
+required files already exist: `src/app.mu`, `src/main.ts`,
+`generated/model.ts`, and `generated/data.ts`. None is produced by this
+pipeline: all are project content, written ahead of time by the generators
+described in [Project content generators](content-generators.md), and the
+build's `ProjectBuildManager.CheckRequirements` fails fast, before
+provisioning a sandbox or running a single action, if any is missing. The
+build system deep-dive page covers the pipeline mechanics (artifact keys,
+consume-before-produce validation, sandbox promotion); the point that
+matters here is the last few actions, because they are what produce the code
+the browser eventually runs:
 
 1. `ResolveBasesAction` and `CompileModelAction` do what every build does —
    assemble the base closure and compile it into a `CompiledModel`, whose
    `fullDocument` is the entire closure (not just the project's own nodes).
-2. `EmitEntryAction` writes `generated/entry.ts` — the wiring that ties the
-   DTO and the UI together and calls the bootstrap — into the build's
-   sandbox, not the project; it is build glue, never committed project
+2. `EmitEntryAction` writes `entry.ts` — the wiring that constructs the app,
+   instantiates the view-model, and calls the bootstrap — into the build's
+   sandbox root, not the project; it is build glue, never committed project
    content.
 3. `CompileMuralAction` compiles every `.mu` file the project has —
-   including its `generated/app.mu`, required to already be there — to
-   `compiled/<basename>.mu.js` via mural's own `compile()`.
-4. `BundleAppAction` runs esbuild over the staged entry point.
+   including its `src/app.mu`, required to already be there — to a sibling
+   `<path>.mu.js` (so `src/app.mu` → `src/app.mu.js`) via mural's `compile()`.
+4. `BundleAppAction` collects the staged source and compiled modules and
+   hands them to the `IBundler` to produce one self-executing script.
 5. `EmitBundledHostAction` renders the final `index.html`, as described above.
 
 Step 2 is worth reading in full, because it is the one action left in this
@@ -106,71 +107,102 @@ what already exists or requires it up front.
 
 `EmitEntryAction`
 (`src/solution-services/todl-build-system/html-bundle/emit-entry-action.ts`)
-writes `generated/entry.ts` into the build's sandbox from a small hoisted
-template:
+writes `entry.ts` into the build's sandbox root from a small hoisted template
+(`{App}` substituted with the view-model class name):
 
 ```ts
-import { app } from "../compiled/app.mu.js";
-import { {{PkgClass}} } from "./model.js";
+import { app } from "./src/app.mu.js";
+import { {App} } from "./src/main.js";
+import { model } from "./generated/data.js";
 import { TodlAppBootstrap } from "@pragmatic-tech-ai/todl";
-const dto = {{PkgClass}}.fromJSON((window as any).__TODL_APP__);
-TodlAppBootstrap.Mount(app, dto);
+new {App}();
+TodlAppBootstrap.Mount(app, model);
 ```
 
-`{{PkgClass}}` is the `pascalCase` of the project's manifest id or name — the
-generated DTO class name from `generateReadClient`. Two things happen here in
-sequence: `{{PkgClass}}.fromJSON(window.__TODL_APP__)` rehydrates the inlined
-JSON into the typed DTO instance (this *is* the app's DataContext, built
-purely from the data `HtmlShell` inlined — no network call), and `app` is
-imported directly from the compiled `app.mu.js` — the mural `Application`
-instance the project's generated UI markup compiles down to. `entry.ts` is
-the file esbuild actually bundles; everything before it in the pipeline exists
-to produce its two imports.
+`{App}` is `AppNaming.AppClass(manifest.id ?? manifest.name)`. The five lines
+run in an order that is not interchangeable, and understanding why is the key
+to understanding the whole runtime:
+
+1. `import { app }` evaluates the compiled `src/app.mu.js` **first**. That is
+   what constructs the mural `Application` and assigns `Application.current`.
+2. `import { {App} }` only *defines* the view-model class — the markup
+   imported it transitively a moment ago, so by the time this line is reached
+   the class object already exists; importing it again is free.
+3. `import { model }` pulls in the rehydrated DTO instance — `generated/data.ts`
+   has already called `<Dto>.fromJSON(window.__TODL_APP__)`, so `model` is the
+   typed graph, built purely from the data `HtmlShell` inlined, no network call.
+4. `new {App}()` runs the view-model constructor **now** — after step 1 — so
+   its `Application.current?.Services.addInstance(this)` registers against an
+   `Application` that actually exists. This is the one instance the whole app
+   has; the markup's `$service` binding resolves to it.
+5. `TodlAppBootstrap.Mount(app, model)` hands the host element to mural.
+
+`entry.ts` is the file the bundler actually bundles; everything before it in
+the pipeline exists to produce its imports. The subtle failure it guards
+against — a view-model that self-registers before the `Application` exists,
+leaving `$service` empty and the page blank — is exactly why `src/main.ts`
+only *defines* the class and this glue, not the user's source, owns the single
+`new`.
 
 ### The UI that ships
 
-`generated/app.mu` is not produced by this pipeline at all. By the time the
-build runs, the file is already sitting in the project — written once, at
-project creation, by `UiPlaceholderGenerator` (id `app-ui`; see
-[Project content generators](content-generators.md)).
-The generator reflects the compiled model back into a `Repository` (via
-`fromJSON`, from `compiler-services/emit/json.ts`) and hands it to
-`AppUiTemplate.Render` (`app-ui-template.ts`) — the same template class the
-build used before this generator existed. The template walks every
-`Concept`-kind node in the repository, sorted by id, and emits one section per
-concept inside a root `Application { resources: { StackPanel x:root { … } } }`
-block:
+Neither `src/app.mu` nor `src/main.ts` is produced by this pipeline. Both are
+already sitting in the project — scaffolded once, at creation, by
+`AppGenerator` (id `app-ui`) and `AppViewModelGenerator` (id `app-view-model`)
+with `WritePolicy.WriteOnce`, which is what makes them *yours*: a developer
+edits them freely, adds more `.mu` and `.ts` files beside them, and no
+generator or build action ever overwrites them again (see
+[Project content generators](content-generators.md)). What the build compiles
+is whatever is there now, not a regenerated template.
+
+The scaffolded `src/app.mu` is a small, complete demonstration of the
+platform's binding model rather than a per-concept dump:
 
 ```
-StackPanel [ Orientation = Vertical, Margin = (0,0,0,16) ] {
-    TextBlock [ Text = "Technology", FontSize = 15, FontWeight = Bold, Margin = (0,0,0,4) ]
-    ListBox [ ItemsSource = $technologies, DisplayMemberPath = "id" ]
+import <App> from "./main.js"
+
+Application
+{
+    resources:
+    {
+        ContentPresenter x:root [ Content = $service(<App>) ]
+
+        DataTemplate [ DataType = <App> ]
+        {
+            StackPanel [ Orientation = Vertical, Margin = (16,16,16,16) ]
+            {
+                TextBlock [ Text = $HelloText ]
+                TextBlock [ Text = $ConceptSummary ]
+            }
+        }
+    }
 }
 ```
 
-The collection name bound in `$technologies` is not arbitrary — it is
-`pluralize(camelCase(conceptId))`, exactly the accessor name
-`generateReadClient` puts on the DTO class for that concept. This is the
-load-bearing contract mentioned in section 7 of the overview: the UI
-generator and the DTO generator must agree on collection naming without ever
-importing from each other, because they run as two independent generators
-over the same reflected `Repository` and only meet at runtime through this
-string. `DisplayMemberPath = "id"` is why every row in the rendered app shows
-the raw entity id rather than a label — there is no per-concept display
-customization in the generated markup today.
+Three mechanisms carry the whole app, and each is worth naming because they are
+the seams a developer extends:
 
-`UiPlaceholderGenerator` runs with `WritePolicy.WriteOnce`: it writes
-`generated/app.mu` only if the path is absent, and never touches a file that
-is already there — no marker check is needed to protect a hand edit, the
-write policy already guarantees it. `AppUiTemplate` still emits a
-generated-marker first line (`// @generated by todl build — regenerable`),
-but purely as a human-readable signal that the file started out generated;
-nothing in the generator or the build path reads it back to decide anything.
-This is what lets "how entities are shown" move from generated boilerplate to
-a hand-tuned view without any special handling: a developer edits `app.mu`
-freely, and no generator or build action ever overwrites it again. See
-[Project content generators](content-generators.md) for the full
-write-policy story.
+- **`import <App> from "./main.js"`** — a `.mu` top-level import directive makes
+  the user's TypeScript view-model class a first-class markup symbol. This is how
+  authored code and markup meet.
+- **`$service(<App>)`** — a service binding. It resolves against
+  `Application.current.Services`, the container the view-model registered itself
+  into in its constructor. So the `ContentPresenter`'s `Content` *is* the one
+  view-model instance — no manual DataContext plumbing.
+- **`DataTemplate [ DataType = <App> ]`** — a *key-less* template typed to the
+  view-model class. A `ContentPresenter` whose content is an instance of that
+  type auto-selects this template by type, sets the instance as its
+  `DataContext`, and paints it. `$HelloText` and `$ConceptSummary` then bind to
+  the view-model's getters.
+
+The paired `src/main.ts` (covered in [Project content generators](content-generators.md))
+is the class the markup imports: a `<App> extends Observable` with a constructor
+that self-registers into the service container and two getters —
+`HelloText` and `ConceptSummary` (the latter reading
+`model.ConceptNames().length` off the generated DTO). Between the two files, the
+scaffold shows a developer every layer they will use — authored view-model,
+service resolution, type-driven templating, and model reflection — in a form
+they can read, run, and then rewrite into the real application.
 
 ## The bootstrap: wiring with no view knowledge
 
@@ -186,8 +218,8 @@ export class TodlAppBootstrap
     private static readonly RootId = "todl-app-root";
     private static readonly ThemeOptions: ApplicationInitOptions =
     {
-        theme: Material,
-        autoScheme: { light: MaterialLight, dark: MaterialDark },
+        theme: Pragmatic,
+        autoScheme: { light: PragmaticLight, dark: PragmaticDark },
     };
 
     public static Mount(app: Application, dataContext: unknown): void
@@ -210,23 +242,29 @@ exists in the page before calling `getElementById` results into
 is ever missing the mount point.
 
 Past those guards, `Mount` does exactly one thing: it calls
-`app.initialize(new HtmlTarget(host), { theme: Material, autoScheme: { light,
+`app.initialize(new HtmlTarget(host), { theme: Pragmatic, autoScheme: { light,
 dark }, dataContext })`. `HtmlTarget` is mural's DOM rendering target —
 `Mount` doesn't render anything itself, it hands mural a real element to own.
-The `dataContext` is the rehydrated DTO instance `entry.ts` built two lines
-earlier. Everything about *what appears* inside that element — the
-`StackPanel`, the per-concept `ListBox`es, their bindings — was decided at
-build time by `AppUiTemplate` and compiled into `app.mu.js`; the bootstrap
-never inspects the model to decide what to draw.
+The `dataContext` is the rehydrated `model` DTO `entry.ts` imported — it
+becomes the application's root `DataContext`, available to any binding that
+needs the raw graph. Everything about *what appears* inside that element —
+the `ContentPresenter`, its `$service` content, the type-driven
+`DataTemplate` — was decided by the project's own `src/app.mu` and compiled
+into `app.mu.js`; the bootstrap never inspects the model to decide what to
+draw. Pragmatic is the platform's only theme (the former Material theme was
+removed), so there is no theme choice to make here.
 
-From here mural takes over: `initialize` resolves the Material theme (so
-every control in the compiled `app.mu` picks up its themed default style),
-binds `Resources.Root` — the visual `AppUiTemplate` marked `x:root`, which
-mural's compiler lowers into that property — as the application's content,
-and each `ListBox`'s `$<collection>` binding resolves against the DTO now
-sitting in `DataContext`. The rows that appear are the DTO's live collection
-objects; `DisplayMemberPath = "id"` is mural's instruction for how to render
-each one as text.
+From here mural takes over: `initialize` resolves the Pragmatic theme (so
+every control in the compiled `app.mu` picks up its themed default style) and
+binds `Resources.Root` — the `ContentPresenter` marked `x:root`, which mural's
+compiler lowers into that property — as the application's content. That
+presenter's `Content` is a `$service(<App>)` binding, which resolves the one
+view-model instance the entry registered into `Application.current.Services`;
+the key-less `DataTemplate [ DataType = <App> ]` is auto-selected for it, the
+instance becomes the template's `DataContext`, and `$HelloText` /
+`$ConceptSummary` bind to the view-model's getters. What paints is driven by
+the view-model, resolved through the service container — not by the bootstrap
+reflecting over the model.
 
 ## The legacy path: a generic model browser
 
@@ -252,7 +290,7 @@ root visual, and sets `root.DataContext = ModelBrowserVM.For(registry.Root())`
 — reading the root model straight out of the already-registered
 `ModelRegistry`. `MuralHost.Run` (`src/application/mural-host.ts`) is the
 entry point that ties it together: it constructs a fresh mural `Application`,
-initializes it with the Material theme, and boots it through
+initializes it with the Pragmatic theme, and boots it through
 `ApplicationBootstrapper.Boot` with two contributions —
 `ModelRegistryContribution` (the data side) and `MuralViewContribution` (the
 view side).
@@ -293,21 +331,23 @@ through exactly this sequence:
 
 1. The browser parses `index.html`. It hits `<div id="todl-app-root">`, then
    a `<script>` that assigns the compiled model's full JSON document to
-   `window.__TODL_APP__`, then a second `<script>` — the esbuild IIFE bundle
-   of `generated/entry.ts` plus everything it imports.
-2. The bundle's top-level code runs immediately. It imports `app` from the
-   compiled `app.mu.js` (mural's compiled form of the project's generated or
-   hand-authored UI), imports the generated DTO class from `model.js`, and
-   calls `<PkgClass>.fromJSON(window.__TODL_APP__)` to rebuild the typed DTO
-   in memory — no fetch, the data was already on the page.
-3. `TodlAppBootstrap.Mount(app, dto)` runs: it confirms it's in a browser,
+   `window.__TODL_APP__`, then a second `<script>` — the IIFE bundle of
+   `entry.ts` plus everything it imports.
+2. The bundle's top-level code runs immediately, in the order `entry.ts`
+   fixes: evaluating `src/app.mu.js` constructs the mural `Application` and
+   sets `Application.current`; `generated/data.js` rebuilds the typed DTO from
+   `window.__TODL_APP__` (no fetch, the data was already on the page); then
+   `new <App>()` runs the view-model constructor, which registers the instance
+   into `Application.current.Services`.
+3. `TodlAppBootstrap.Mount(app, model)` runs: it confirms it's in a browser,
    finds `#todl-app-root`, and calls `app.initialize(new HtmlTarget(host), {
-   theme: Material, autoScheme: { light, dark }, dataContext: dto })`.
-4. mural takes the compiled `Application`, resolves the theme, mounts the
-   generated `StackPanel` of per-concept sections into the host element, and
-   binds each `ListBox`'s `ItemsSource` to the matching collection on the
-   DTO. The page is now live: every row shown is a real DTO instance, bound
-   by reference, not a static render.
+   theme: Pragmatic, autoScheme: { light, dark }, dataContext: model })`.
+4. mural takes the compiled `Application`, resolves the theme, and mounts its
+   `x:root` `ContentPresenter` into the host element. The presenter's
+   `$service(<App>)` content resolves the registered view-model, the key-less
+   `DataTemplate` typed to it is auto-selected, and `$HelloText` /
+   `$ConceptSummary` bind to its getters. The page is now live: what shows is
+   the view-model's state, bound by reference, not a static render.
 
 Nowhere in that sequence does the bootstrap, the DTO, or the mural runtime
 need to know anything about the specific concepts in this project's model —

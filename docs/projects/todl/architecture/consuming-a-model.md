@@ -202,23 +202,25 @@ The generated collection getter name is `pluralize(camelCase(conceptId))` —
 for concept `technology` that is `technologies`; for a taxonomy, the
 collection getter uses the taxonomy's represented concept
 (`repo.represents(t)[0]`) rather than the taxonomy id itself. This is called
-out in the architecture overview as **load-bearing**, and reading the
-[project content generators](content-generators.md) story makes clear why:
-`UiPlaceholderGenerator` renders a `ListBox` per concept in `generated/app.mu`
-with `ItemsSource = $<collection>`, where `<collection>` is computed by the
-exact same `pluralize(camelCase(conceptId))` formula, independently, in the
-mural-template generator. The DTO class and the generated view are two
-separate generators agreeing on a naming contract with no shared runtime
-check between them, and the two sides are not kept in lockstep the same way:
-`DtoGenerator` regenerates `generated/model.ts` on every reference change, so
-its collection getters always track the current concept set, but
-`UiPlaceholderGenerator` only ever writes `generated/app.mu` once, at project
-creation (`WritePolicy.WriteOnce`) — hand-edited or not, the file is never
-regenerated afterward. Rename a concept later and the DTO's accessor renames
-with it, while `app.mu`'s `ItemsSource = $<old-name>` keeps pointing at the
-old one and silently binds to nothing, since mural does not error on an
-unresolved binding path by default. This is the one place in the whole
-consuming layer where a naming heuristic, not a type, is the contract.
+out in the architecture overview as **load-bearing**, because it is a naming
+heuristic, not a type, that any markup or view-model binding to those
+collections must match. `DtoGenerator` regenerates `generated/model.ts` on
+every reference change, so its collection getters always track the current
+concept set — but a `src/app.mu` or `src/main.ts` that binds `$<collection>`
+is scaffolded once (`WritePolicy.WriteOnce`) and then owned by the developer,
+never regenerated. Rename a concept later and the DTO's accessor renames with
+it, while any hand-written `$<old-name>` binding keeps pointing at the old one
+and silently binds to nothing, since mural does not error on an unresolved
+binding path by default.
+
+The *scaffolded* default UI sidesteps this deliberately: rather than bind a
+`ListBox` per concept, `src/app.mu`'s view-model exposes a `ConceptSummary`
+getter reading `model.ConceptNames().length` — a demonstration that reads the
+model through its reflection API without depending on any one concept's
+collection name (see [Project content generators](content-generators.md)). The
+naming contract becomes load-bearing the moment a developer writes real markup
+that binds `$technologies` and friends — which is exactly when they are editing
+`src/`, with the DTO's current accessor names in front of them.
 
 `model-package.ts`'s `ModelPackageGenerator.Generate` wraps
 `generateReadClient` into a larger, runnable single file: it reuses the
@@ -313,12 +315,12 @@ built on. `DtoGenerator` (see
 full compiled closure and runs `generateReadClient` to write
 `generated/model.ts` into the project ahead of any build; the html-bundle
 build (section 10) only requires that file be present and never writes it
-itself. At build time, `EmitEntryAction` writes `generated/entry.ts` into the
-build's sandbox, which calls `<Pkg>.fromJSON(window.__TODL_APP__)` — the
-exact synchronous `fromJSON` path described above — to build the DTO that
-becomes `TodlAppBootstrap.Mount(app, dto)`'s `dataContext`. The generated
-`app.mu`'s `ListBox`es bind to that DTO's collection getters by the naming
-contract discussed above. `authoring`'s `ModelDraft` is the one piece of
+itself. The `model-data` generator writes `generated/data.ts`, which calls
+`<Dto>.fromJSON(window.__TODL_APP__)` — the exact synchronous `fromJSON` path
+described above — to export the `model` the build's sandbox `entry.ts` imports
+and hands to `TodlAppBootstrap.Mount(app, model)`. Any markup or view-model
+that binds that DTO's collection getters does so by the naming contract
+discussed above. `authoring`'s `ModelDraft` is the one piece of
 this section that is not part of that generated-app path at all — it backs
 interactive editing tools (project authoring UIs, agent-driven model
 construction) that write `.todl` source, not the runtime read path a shipped

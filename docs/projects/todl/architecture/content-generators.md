@@ -1,26 +1,36 @@
 # Project content generators
 
 This page is the deep-dive companion to section 10 of the [Architecture overview](../architecture.md).
-It covers `src/solution-services/project-services/generators/`: the subsystem that produces
-`generated/model.ts` and `generated/app.mu` — files the html-bundle build used to generate itself,
-now project content owned by pluggable generators instead. Every type and file path below is taken
-directly from the real code in the TODL package (`@pragmatic-tech-ai/todl`).
+It covers `src/solution-services/project-services/generators/`: the subsystem that produces an
+architecture project's editable `src/` application and its machine-owned `generated/` support files
+— content the html-bundle build used to generate itself, now project content owned by pluggable
+generators instead. Every type and file path below is taken directly from the real code in the
+TODL package (`@pragmatic-tech-ai/todl`, 0.50.7).
 
 ## The ownership flip
 
-Before this subsystem existed, the html-bundle build's own actions wrote `generated/model.ts` and
-`generated/app.mu` into the project as a side effect of building it — a build you never ran meant
-those files never existed, and a build was the only way to refresh them after a model change. That
-coupled two things that don't belong together: producing project content a developer reads, diffs,
-and sometimes hand-edits, and running a build pipeline whose job is to turn already-present content
-into a shippable artifact.
+Before this subsystem existed, the html-bundle build's own actions wrote the project's DTO and UI
+into the project as a side effect of building it — a build you never ran meant those files never
+existed, and a build was the only way to refresh them after a model change. That coupled two things
+that don't belong together: producing project content a developer reads, diffs, and sometimes
+hand-edits, and running a build pipeline whose job is to turn already-present content into a
+shippable artifact.
 
-The subsystem breaks that coupling. `generated/model.ts` and `generated/app.mu` are now written by
-two generators that run off project lifecycle events — creation, a change to the project's base
-references, or opening a project that is missing them — independent of any build. The html-bundle
-build system, in turn, no longer creates either file: it only *requires* that they already exist,
-and fails fast, before doing any other work, if they don't. Generators own project content; the
-build requires it.
+The subsystem breaks that coupling. Four generators now write an architecture project's source tree
+off project lifecycle events — creation, a change to the project's base references, or opening a
+project that is missing them — independent of any build. They split into two ownership tiers that
+the layout itself makes visible:
+
+- **`src/` is yours.** `src/app.mu` (the application UI) and `src/main.ts` (a view-model paired with
+  it) are scaffolded **once**, at project creation, and never touched again — you edit them freely,
+  add your own `.ts` and `.mu` files beside them, and the build bundles whatever is there.
+- **`generated/` is the machine's.** `generated/model.ts` (the typed DTO) and `generated/data.ts`
+  (the model instance rehydrated from the page) are **regenerated** whenever the model's shape could
+  have changed. You import from them; you never edit them.
+
+The html-bundle build system, in turn, creates none of these files: it only *requires* that the four
+exist, and fails fast, before doing any other work, if they don't. Generators own project content;
+the build requires it.
 
 ## The abstraction: IProjectContentGenerator
 
@@ -176,10 +186,16 @@ puts on that bus. Its `Handle(event)` does one of two things:
 generator *should* run, the generator's own write policy still governs whether any individual
 path actually gets overwritten.
 
-## The two generators
+## The four generators
 
-Both ship registered by `ArchitectureProjectFactory.Generators()`, in `Id`, `WritePolicy`,
-`Triggers` order — UI placeholder first, DTO second.
+All four ship registered by `ArchitectureProjectFactory.Generators()`, in the order **DTO, data,
+view-model, UI**. Two write into `generated/` with `WritePolicy.Overwrite` (regenerated on every
+model-shape change); two scaffold `src/` with `WritePolicy.WriteOnce` (written once, then yours
+forever). A single class, `AppNaming` (`app-naming.ts`), is the one source of the generated class
+names every generator agrees on — `AppNaming.DtoClass(name)` is `pascalCase(name)`, and
+`AppNaming.AppClass(name)` is that plus an `App` suffix (e.g. a project named `payments-platform`
+yields DTO class `PaymentsPlatform` and app class `PaymentsPlatformApp`). None of the four imports
+from another; they only ever agree through `AppNaming` and through the member names codegen emits.
 
 ### DtoGenerator — generated/model.ts
 
@@ -189,21 +205,112 @@ calls `generateReadClient` — the same codegen used for any typed client (see
 [Consuming a model](consuming-a-model.md)) — to produce the DTO source, writing it to
 `generated/model.ts` with `WritePolicy.Overwrite`. Its `Triggers` are `ProjectCreated` and
 `ReferencesChanged`: the DTO's shape follows the model's shape, so it regenerates both when the
-project is first created and whenever the project's base bindings change — a new or updated base
-can add, remove, or reshape concepts, and the DTO needs to track that every time.
+project is first created and whenever the project's base bindings change — a new or updated base can
+add, remove, or reshape concepts, and the DTO needs to track that every time. The emitted class is
+named `AppNaming.DtoClass(manifest.id ?? manifest.name)`. It compiles the project's *local* model
+(`ctx.Model.CompileLocal()`) — an architecture project has no publishable package id, so it compiles
+its own `.todl` against resolved bases without demanding one.
 
-### UiPlaceholderGenerator — generated/app.mu
+### ModelInstanceGenerator — generated/data.ts
 
-`UiPlaceholderGenerator` (`ui-placeholder-generator.ts`, id `app-ui`) reflects the same compiled
-closure and hands it to `AppUiTemplate.Render` — the identical template class the old build action
-used, one section per concept with a header `TextBlock` and a `ListBox` bound to
-`pluralize(camelCase(conceptId))` — writing `generated/app.mu` with `WritePolicy.WriteOnce`. Its
-only trigger is `ProjectCreated`. Because `WriteOnce` never touches a path that already exists, the
-generator itself needs no clobber-guard marker check to protect a hand edit — the write policy
-already guarantees a developer's edited `app.mu` is never overwritten by a later `Created` event
-(which in practice only fires once per project anyway) or by a backfill pass. `AppUiTemplate`
-still emits its generated-marker first line (`// @generated by todl build — regenerable`) purely as
-a human-readable "this was generated" signal; nothing in the generator path reads it back.
+`ModelInstanceGenerator` (`model-instance-generator.ts`, id `model-data`) is the one generator that
+needs **no** model compile at all — it emits a two-line bridge module that, at runtime in the
+browser, rehydrates the model data the page inlined into `window.__TODL_APP__` through the DTO's
+`fromJSON`, and exports the result as `model`. Its `Triggers` are `ProjectCreated` and
+`ReferencesChanged`, `WritePolicy.Overwrite`. What it writes (with `<Dto> = AppNaming.DtoClass(...)`):
+
+```ts
+// Generated by @pragmatic-tech-ai/todl. Do not edit.
+import { <Dto> } from "./model.js";
+export const model = <Dto>.fromJSON((window as any).__TODL_APP__);
+```
+
+This is the file the whole point of which is to hide `(window as any).__TODL_APP__` from the code a
+developer writes: `src/main.ts` imports an already-rehydrated `model`, never the raw global.
+
+### AppViewModelGenerator — src/main.ts
+
+`AppViewModelGenerator` (`app-view-model-generator.ts`, id `app-view-model`) scaffolds the paired
+view-model — a demonstration of the platform's major seams in one small, editable class. Its only
+trigger is `ProjectCreated`, `WritePolicy.WriteOnce`. The class is named `AppNaming.AppClass(...)`,
+extends `Observable` (the lightweight INPC root — not `MuralBase`), registers *itself* into the
+`Application`'s service container in its constructor so a `$service` binding can resolve it, and
+exposes two getters that read the generated `model`:
+
+```ts
+import { Application } from "@pragmatic-tech-ai/mural";
+import { Observable } from "@pragmatic-tech-ai/mural/runtime";
+import { model } from "../generated/data.js";
+
+export class <App> extends Observable
+{
+    constructor()
+    {
+        super();
+        Application.current?.Services.addInstance(this);
+    }
+
+    public get HelloText(): string
+    {
+        return "Hello from <Project>";
+    }
+
+    public get ConceptSummary(): string
+    {
+        return `The application has access to ${model.ConceptNames().length} concepts`;
+    }
+}
+```
+
+`<App>` is `AppNaming.AppClass(manifest.id ?? manifest.name)`; `<Project>` is the manifest `name`.
+The constructor's `Application.current?.Services.addInstance(this)` is the load-bearing line — it is
+how the instance becomes resolvable by `$service(<App>)` from the markup. The two getters exist to
+demonstrate the two data paths a real view-model uses: a plain computed string (`HelloText`) and one
+derived from the compiled model's reflection API (`model.ConceptNames().length`).
+
+### AppGenerator — src/app.mu
+
+`AppGenerator` (`app-generator.ts`, id `app-ui`) scaffolds the application markup through
+`AppUiTemplate.Render(manifest.id ?? manifest.name)`. Its only trigger is `ProjectCreated`,
+`WritePolicy.WriteOnce`. The template imports the view-model class as a markup symbol, declares the
+`Application`'s root as a `ContentPresenter` whose `Content` is a `$service` binding to the
+view-model, and declares a key-less `DataTemplate` typed to that same class so the `ContentPresenter`
+auto-selects it to paint the instance:
+
+```
+// src/app.mu — your application UI. Edit freely; it is never regenerated.
+// The view-model class lives in ./main.ts; bind to its members with $Name.
+import <App> from "./main.js"
+
+Application
+{
+    resources:
+    {
+        ContentPresenter x:root [ Content = $service(<App>) ]
+
+        DataTemplate [ DataType = <App> ]
+        {
+            StackPanel [ Orientation = Vertical, Margin = (16,16,16,16) ]
+            {
+                TextBlock [ Text = $HelloText ]
+                TextBlock [ Text = $ConceptSummary ]
+            }
+        }
+    }
+}
+```
+
+Two mural mechanisms carry this. The top-level `import <App> from "./main.js"` directive makes the
+user's TypeScript class a markup symbol — the same facility that lets any `.mu` reference a
+hand-written class. And the `DataTemplate [ DataType = <App> ]` is *key-less*: a `ContentPresenter`
+whose `Content` resolves to an instance of that type auto-selects the matching key-less template by
+type, sets it as `DataContext`, and paints it. `$HelloText` / `$ConceptSummary` then bind against the
+view-model sitting in that `DataContext`. See [The runnable app](runnable-app.md) for the exact boot
+order these pieces depend on — it is subtler than it looks, and getting it wrong renders a blank page.
+
+Because both `src/` generators are `WriteOnce`, neither needs a clobber-guard marker to protect a
+hand edit: the policy already guarantees an edited `app.mu` or `main.ts` is never overwritten by a
+later `Created` event (which fires once per project anyway) or by an open-time backfill.
 
 ## Declaring generators on a project factory
 
@@ -225,12 +332,12 @@ concrete factory that implements it today:
 ```ts
 public Generators(): readonly IProjectContentGenerator[]
 {
-    return [new UiPlaceholderGenerator(), new DtoGenerator()]
+    return [new DtoGenerator(), new ModelInstanceGenerator(), new AppViewModelGenerator(), new AppGenerator()]
 }
 ```
 
 Meta-model and library projects declare no generators — they are base-producing projects with no
-runnable app to generate a DTO or UI for.
+runnable app to generate a DTO, data bridge, view-model, or UI for.
 
 ## Raising Created
 
@@ -271,36 +378,60 @@ export interface RequiredContent
 }
 ```
 
-`HtmlBundleBuildSystem`'s single flavor declares two entries, one per generator-owned file:
+`HtmlBundleBuildSystem`'s single flavor declares four entries, one per generator-owned file:
 
 ```ts
 private static readonly RequiredContent: readonly RequiredContent[] = [
     { Path: "generated/model.ts", GeneratorId: "model-dto" },
-    { Path: "generated/app.mu", GeneratorId: "app-ui" },
+    { Path: "generated/data.ts",  GeneratorId: "model-data" },
+    { Path: "src/main.ts",        GeneratorId: "app-view-model" },
+    { Path: "src/app.mu",         GeneratorId: "app-ui" },
 ];
 ```
 
 `ProjectBuildManager.CheckRequirements` walks that list before provisioning a sandbox or running any
 action — before anything else happens at all — and reports every missing path, each with a hint
-naming the generator that owns it, as a build-level error. A project missing `generated/model.ts`
-fails immediately with a message pointing at `model-dto`, not several actions deep into a build
-with a confusing downstream failure. The html-bundle pipeline itself no longer contains any action
-that writes either file: it resolves bases, compiles the model, emits the fixed `entry.ts` build
-glue directly into the sandbox (never the project — it is a static template with nothing project-
-specific to commit), compiles every `.mu` it finds (including the project's own `generated/app.mu`,
-required to already be there), bundles with esbuild, and emits `index.html`. See
-[The build system](build-system.md) for the full pipeline.
+naming the generator that owns it, as a build-level error. A project missing `src/app.mu` fails
+immediately with a message pointing at `app-ui`, not several actions deep into a build with a
+confusing downstream failure. The html-bundle pipeline itself contains no action that writes any of
+the four: it resolves bases, compiles the model, emits a fixed `entry.ts` build glue directly into
+the sandbox (never the project — it is a static template with nothing project-specific to commit),
+compiles every `.mu` it finds (including the project's own `src/app.mu`, required to already be
+there), bundles with esbuild, and emits `index.html`. See [The build system](build-system.md) for
+the full pipeline.
 
-The result is a clean split of responsibility: this subsystem decides *when* and *whether*
-`generated/model.ts` and `generated/app.mu` get (re)written, independent of any build; the build
-system decides only whether they are present, and refuses to guess or fabricate them if not.
+The result is a clean split of responsibility: this subsystem decides *when* and *whether* the
+project's `src/` and `generated/` files get (re)written, independent of any build; the build system
+decides only whether they are present, and refuses to guess or fabricate them if not.
+
+## Migrating an older project
+
+Projects created before the editable-`src/` layout existed carry their UI at the old path
+`generated/app.mu`. `ArchitectureProjectMigration` (`architecture-project/architecture-project-migration.ts`)
+heals them on open. Wired into the `ProjectEvents` bus *before* the `GeneratorScheduler`
+(`ProjectSystemComposer.Compose` subscribes it first, and `Raise` awaits subscribers in order), its
+`Handle` reacts only to an `Opened` event for an architecture project and calls `Run`:
+
+- If `generated/app.mu` does not exist, it returns — nothing to migrate, idempotent on every
+  subsequent open.
+- If `generated/app.mu` *and* `src/app.mu` both exist, it leaves both untouched and reports a
+  `Warning` asking the developer to merge and delete the old file by hand — it never silently
+  discards edits.
+- Otherwise it **moves** the file: reads `generated/app.mu`, writes the content verbatim to
+  `src/app.mu`, and deletes the original. The old markup is still a valid `Application`, so it is
+  carried across intact rather than regenerated.
+
+The ordering is the whole point: the migration must run before the scheduler's open-time backfill,
+or `AppGenerator` would scaffold a fresh hello-world `src/app.mu` first, and the `WriteOnce` policy
+would then refuse to let the moved older UI land.
 
 ## Presentation and .mu as build artifacts
 
 This subsystem's ownership is narrower than "everything a project needs to run": it owns exactly
-two files, both user-editable seed content — the DTO (`generated/model.ts`) and the default app
-UI (`generated/app.mu`). Presentation resources, the resource keys stamped onto them, and compiled
-`.mu` output are a different kind of thing entirely, and they are **not** generator-owned.
+the project's `src/` application (`src/app.mu`, `src/main.ts`) and its `generated/` DTO and data
+(`generated/model.ts`, `generated/data.ts`). Presentation resources, the resource keys stamped
+onto them, and compiled `.mu` output are a different kind of thing entirely, and they are **not**
+generator-owned.
 
 Both are purely derived from whatever `.todl` and `.mu` a project already has — there is nothing to
 hand-edit and nothing a developer would ever want to diff against a previous run — so instead of a

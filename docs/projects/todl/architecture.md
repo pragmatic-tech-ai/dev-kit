@@ -515,49 +515,47 @@ nothing.
 
 **html-bundle** (Architecture only) — compiles a project into a runnable
 single-page app. This is the per-project *application compiler*. Before any
-action runs, its `BuildFlavor.Requires` precondition checks that
-`generated/model.ts` and `generated/app.mu` already exist in the **project** —
-they are content the generators own (below), not this pipeline — and fails fast
-with a hint naming the generator to run if either is missing. The ordered action
-list (`html-bundle-build-system.ts`):
+action runs, its `BuildFlavor.Requires` precondition checks that the project's
+four generator-owned files already exist — `src/app.mu`, `src/main.ts`,
+`generated/model.ts`, `generated/data.ts` — and fails fast with a hint naming the
+generator to run if any is missing. Its constructor takes an `IBundler`, the one
+seam that lets the same build run headless or split across processes. The ordered
+action list (`html-bundle-build-system.ts`):
 
 1. **ResolveBasesAction** → `ResolvedBases`.
 2. **CompileModelAction** → `CompiledModel` (the full closure is on `.fullDocument`).
-3. **EmitEntryAction** → writes `generated/entry.ts` into the **sandbox** (build
-   glue, not project content — it is a fixed template, independent of the
-   compiled model's shape, so there is nothing to commit): imports `app` from the
-   compiled `app.mu.js`, imports the DTO class from the project's (already
-   generated) `model.js`, builds `<Pkg>.fromJSON(window.__TODL_APP__)`, and calls
-   `TodlAppBootstrap.Mount(app, dto)`.
+3. **EmitEntryAction** → writes `entry.ts` into the **sandbox root** (build glue,
+   never committed): imports `app` from the compiled `src/app.mu.js` (constructing
+   the `Application`), imports the view-model class and the rehydrated `model`,
+   does `new <App>()` (self-registering the view-model), then
+   `TodlAppBootstrap.Mount(app, model)`. The import/`new` order is load-bearing.
 4. **CompileMuralAction** → compiles every `.mu` under the project (hand-authored
-   and the project's own `generated/app.mu` alike) to `compiled/<basename>.mu.js`
-   in the **sandbox**, via mural's `compile()`. Detects basename collisions up
-   front and stops on any compile error.
-5. **BundleAppAction** → runs **esbuild** over the staged entry: `format: "iife"`,
-   `platform: "browser"`, `target: "es2020"`, `keepNames: true` (mural relies on
-   name-keyed lookups), `conditions: ["development"]` (resolves `@pragmatic-tech-ai/*`
-   from TypeScript `src`). Produces the bundle string in `AppBundle`. It stages
-   into a temp dir inside the repo root so esbuild's `node_modules` walk and the
-   `@pragmatic-tech-ai/todl` package self-reference resolve. (Resolving a
-   *published* `dist` instead of `src` is a known deferred follow-up — no consumer
-   builds against an installed todl yet.)
+   and the project's own `src/app.mu` alike) via the shared `MuralCompiler` with
+   `MuralOutputLayout.Sibling`, so `src/app.mu` → `src/app.mu.js` in the
+   **sandbox**. Detects output collisions up front and stops on any compile error.
+5. **BundleAppAction** → collects the staged `src/` + `generated/` source and the
+   compiled modules and delegates to the injected **`IBundler`**, producing the
+   bundle string in `AppBundle`. The default `EsbuildBundler` runs esbuild
+   (`iife` / `browser` / `es2020` / `keepNames`) with a single-mural dedup plugin
+   and a `development`-vs-`dist` condition probe; in Plexus's renderer an
+   `IpcBundler` ships the request to the main process instead.
 6. **EmitBundledHostAction** → renders a single self-contained `index.html` into
    the sandbox via `HtmlShell.Render(JSON.stringify(fullDocument), bundle)`.
 
 `HtmlArtifacts` holds the keys those actions pass (`CompiledUi`, `AppEntry`,
 `AppBundle`).
 
-> **History note.** This per-project app compiler replaced an earlier design that
-> inlined a single frozen, committed 3.5 MB runtime bundle and injected only model
-> *data* into it. View logic now lives in the project's generated (and overridable)
-> `app.mu`, and the runtime is compiled fresh each build. A later change moved
-> `generated/model.ts` and `generated/app.mu` generation out of this pipeline
-> entirely and into the project content generators — the build now requires them
-> rather than creating them.
+> **History note.** This target has had three shapes: a single frozen 3.5 MB
+> runtime bundle with only model *data* injected; then a per-project compiler whose
+> view lived in one generated `app.mu`; and now an **editable `src/` application**
+> (`src/app.mu` + a paired `src/main.ts` view-model, with the DTO and data in
+> `generated/`), with generation moved entirely into the content generators and the
+> one node-only step moved behind the `IBundler` seam. The build requires those
+> files rather than creating any.
 
 **Deep dive:** [The build system](architecture/build-system.md) — the full article. See
 also [Project content generators](architecture/content-generators.md) — the generator
-subsystem behind `generated/model.ts` and `generated/app.mu`.
+subsystem behind the project's `src/` application and `generated/` DTO.
 
 ---
 
@@ -570,21 +568,22 @@ The build output `index.html` is fully self-contained. At runtime:
    `<script>`. `HtmlShell` (`.../html-bundle/html-shell.ts`) emits this; note it
    lives in the build system, not in `graph-api/browser/`, but shares the
    `todl-app-root` id contract with the bootstrap.
-2. The bundle's generated `entry.ts` rehydrates the data —
-   `<Pkg>.fromJSON(window.__TODL_APP__)` builds the DTO (the app's DataContext) —
-   and imports the mural `Application` exported by the compiled `app.mu`.
-   `generated/model.ts` (the DTO source) and `generated/app.mu` (the UI source)
-   are project content, produced by the content generators (§10) and committed;
-   `entry.ts` itself is fixed build glue, emitted fresh into the build sandbox by
-   `EmitEntryAction` and never committed.
-3. It calls `TodlAppBootstrap.Mount(app, dto)` (`src/graph-api/browser/todl-app-bootstrap.ts`).
+2. The bundle's `entry.ts` runs in a fixed order: evaluating the compiled
+   `src/app.mu.js` constructs the mural `Application`; `generated/data.ts` has
+   already rehydrated the DTO as `model`; then `new <App>()` runs the view-model
+   constructor, registering the instance into the Application's service container.
+   `src/app.mu`, `src/main.ts`, `generated/model.ts`, and `generated/data.ts` are
+   project content, produced by the content generators (§10); `entry.ts` itself is
+   fixed build glue, emitted fresh into the build sandbox and never committed.
+3. It calls `TodlAppBootstrap.Mount(app, model)` (`src/graph-api/browser/todl-app-bootstrap.ts`).
    Mount guards against no-DOM (so the same entry is inert under Node), finds
    `#todl-app-root`, and calls
-   `app.initialize(new HtmlTarget(host), { theme: Material, autoScheme: { light, dark }, dataContext })`.
-   The bootstrap carries **no view knowledge** — the view is the project's `app.mu`.
-4. mural renders: the Material theme resolves control styles and the per-concept
-   `ListBox`es bind to the DTO collections. `DisplayMemberPath = "id"` makes each
-   row show the entity's `id`.
+   `app.initialize(new HtmlTarget(host), { theme: Pragmatic, autoScheme: { light, dark }, dataContext })`.
+   The bootstrap carries **no view knowledge** — the view is the project's `src/app.mu`.
+4. mural renders: the Pragmatic theme resolves control styles; the `x:root`
+   `ContentPresenter` resolves its `$service(<App>)` content from the container, the
+   key-less `DataTemplate` typed to the view-model is auto-selected, and its
+   `$HelloText` / `$ConceptSummary` bindings paint the view-model's state.
 
 > **Legacy path.** `src/application/MuralViewContribution` + `ModelBrowserVM` +
 > `MuralHost` mount a *generic* built-in model-browser view for any model. The new
@@ -636,7 +635,7 @@ and **`default`** → compiled `./dist/**/*.js`. In-repo tooling and tests run w
 consumers get `dist`. The published package ships only `dist` and `README.md`.
 
 **Dependencies:** `@pragmatic-tech-ai/mural` (the UI/visual-engine framework —
-`Application`, `HtmlTarget`, Material theme, `Observable`) and
+`Application`, `HtmlTarget`, Pragmatic theme, `Observable`) and
 `@pragmatic-tech-ai/todl-runtime` (the DI + reactive substrate —
 `CompositionRoot`, `ServiceProvider`, `Signal`, `Disposable`). The root barrel
 re-exports `Signal`/`Disposable` and the prompt types from `todl-runtime`, so a
@@ -706,21 +705,22 @@ projects resolve it.
 
 ### C. An architecture project becomes a runnable single-page app
 
-The `html-bundle` build **requires** `generated/model.ts` (DTO) and
-`generated/app.mu` (per-concept UI) to already exist — content the project
-generators own, not this build (§10) — and fails fast if either is missing. It
-resolves + compiles the closure, emits `generated/entry.ts` (wiring) into the
-sandbox, compiles every `.mu` with mural, bundles the entry with esbuild (keepNames,
-IIFE), and emits one self-contained `index.html` inlining the model as
-`window.__TODL_APP__` and the app as a script.
+The `html-bundle` build **requires** the project's `src/app.mu`, `src/main.ts`,
+`generated/model.ts`, and `generated/data.ts` to already exist — content the project
+generators own, not this build (§10) — and fails fast if any is missing. It
+resolves + compiles the closure, emits `entry.ts` (wiring) into the sandbox,
+compiles every `.mu` with mural (sibling layout), bundles the staged source through
+the `IBundler` (default esbuild: keepNames, IIFE), and emits one self-contained
+`index.html` inlining the model as `window.__TODL_APP__` and the app as a script.
 
 ### D. What happens when someone opens that index.html
 
-The page rehydrates the DTO from `window.__TODL_APP__`, constructs the mural
-`Application` from the compiled `app.mu`, and `TodlAppBootstrap.Mount` mounts it
-into `#todl-app-root` with the Material theme and the DTO as DataContext. mural
-renders the per-concept lists — each row showing its entity `id` via
-`DisplayMemberPath` — bound live to the model.
+The page evaluates the bundle: the compiled `src/app.mu.js` constructs the mural
+`Application`, `generated/data.ts` rehydrates the DTO as `model`, `new <App>()`
+registers the view-model into the service container, and `TodlAppBootstrap.Mount`
+mounts the app into `#todl-app-root` with the Pragmatic theme. mural resolves the
+`x:root` `ContentPresenter`'s `$service(<App>)` content and paints the key-less
+`DataTemplate` bound to the view-model's `$HelloText` / `$ConceptSummary`.
 
 **Deep dive:** [End-to-end walkthroughs](architecture/walkthroughs.md) — the full article.
 

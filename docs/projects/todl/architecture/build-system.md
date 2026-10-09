@@ -86,11 +86,12 @@ system follows is: **an action that writes into `Project` is a persistent conten
 generator** — its output is meant to sit alongside the hand-authored `.todl`, be
 diffed, committed, and optionally hand-edited; **an action that writes into `Sandbox`
 is staging output for this build only**, promoted to the final output directory
-exclusively when every action in the pipeline succeeds. The html-bundle actions below
-split cleanly along this line: the three generators that produce TypeScript/markup
-source (`generated/model.ts`, `generated/app.mu`, `generated/entry.ts`) all write into
-`Project`; the two actions that produce actual build artifacts (compiled JS, the final
-`index.html`) write into `Sandbox`.
+exclusively when every action in the pipeline succeeds. The html-bundle target below
+splits cleanly along this line: the four files a developer owns or imports
+(`src/app.mu`, `src/main.ts`, `generated/model.ts`, `generated/data.ts`) are written into
+`Project` by the [project content generators](content-generators.md), never by a build;
+everything the build itself produces — the fixed `entry.ts` glue, the compiled `.mu.js`,
+the bundled script, the final `index.html` — is written into `Sandbox`.
 
 ### The registry: consume-before-produce at registration time
 
@@ -294,10 +295,17 @@ export class TodlBuildSystemRegistry extends BuildSystemRegistry<TodlBuildContex
     {
         super();
         this.Register(new NpmPackageBuildSystem());
-        this.Register(new HtmlBundleBuildSystem());
+        this.Register(new HtmlBundleBuildSystem(new EsbuildBundler()));
     }
 }
 ```
+
+The `new EsbuildBundler()` handed to `HtmlBundleBuildSystem` is the node-only default — the
+right choice for this headless, in-process registry. But the dependency is an interface,
+`IBundler`, not a concrete class, and that one seam is what lets the *same* build system run in a
+browser renderer with the actual bundling pushed to another process. That story is told in full in
+the html-bundle section below and in Plexus's
+[process-agnostic build deep-dive](../../plexus/architecture/process-agnostic-builds.md).
 
 Two artifact-key classes carry the hot values each system's actions pass around:
 `NpmArtifacts` (`ResolvedBases: TodlDocument[]`, `CompiledModel: CompiledPackage`,
@@ -432,18 +440,20 @@ pipeline stopped one action apart.
 npm-package's output: not a package another project depends on, but a runnable,
 self-contained `index.html` a browser can open directly.
 
-`generated/model.ts` (the typed DTO) and `generated/app.mu` (the default view) used to
-be written by actions in this very pipeline. They no longer are. Both are now **project
-content generators** — see [Project content generators](content-generators.md) for the
-full subsystem — that run off project lifecycle events (creation, a changed base
-reference, opening a project that is missing them) independent of any build. This
-pipeline does not create either file; it **requires** them. `HtmlBundleBuildSystem`
-declares that requirement declaratively, on its flavor:
+An architecture project is an **editable `src/` application**, not a frozen view. Its UI
+(`src/app.mu`), its paired view-model (`src/main.ts`), the typed DTO (`generated/model.ts`),
+and the data bridge (`generated/data.ts`) are all written into the project by the
+[project content generators](content-generators.md) — `src/` once, at creation, then yours
+to edit; `generated/` regenerated on every model-shape change — independent of any build.
+This pipeline creates none of them; it **requires** all four. `HtmlBundleBuildSystem` declares
+that requirement declaratively, on its flavor:
 
 ```ts
 private static readonly RequiredContent: readonly RequiredContent[] = [
     { Path: "generated/model.ts", GeneratorId: "model-dto" },
-    { Path: "generated/app.mu", GeneratorId: "app-ui" },
+    { Path: "generated/data.ts",  GeneratorId: "model-data" },
+    { Path: "src/main.ts",        GeneratorId: "app-view-model" },
+    { Path: "src/app.mu",         GeneratorId: "app-ui" },
 ];
 ```
 
@@ -451,23 +461,37 @@ private static readonly RequiredContent: readonly RequiredContent[] = [
 running a single action — before anything else happens — and fails the build with an
 error naming each missing path plus the generator that owns it, rather than fabricating
 a placeholder or silently proceeding. This is the "require, never create" boundary: a
-project that has never had its generators run (or whose generated files were deleted)
-fails a build with a clear, actionable message instead of a confusing failure several
-actions deep, or a build action quietly recreating content the generators are supposed
-to own.
+project that has never had its generators run (or whose files were deleted) fails a build
+with a clear, actionable message instead of a confusing failure several actions deep, or a
+build action quietly recreating content the generators are supposed to own.
 
-With that precondition satisfied, the pipeline itself is now six actions, not eight:
+The build system's single dependency on anything node-specific is injected, not hard-wired:
+its constructor takes an `IBundler`.
 
 ```ts
-private readonly actions: readonly IBuildAction<TodlBuildContext>[] = [
-    new ResolveBasesAction(),
-    new CompileModelAction(),
-    new EmitEntryAction(),
-    new CompileMuralAction(),
-    new BundleAppAction(),
-    new EmitBundledHostAction(),
-];
+constructor(bundler: IBundler)
+{
+    this.actions = [
+        new ResolveBasesAction(),
+        new CompileModelAction(),
+        new EmitEntryAction(),
+        new CompileMuralAction(),
+        new BundleAppAction(bundler),
+        new EmitBundledHostAction(),
+    ];
+}
 ```
+
+`IBundler` (`build-system-core/bundler.ts`) is a one-method interface —
+`BundleApp(request): Promise<BundleAppResult>` — whose request and result are plain,
+serializable `{ Entry, Files: { Path, Text }[] }` / `{ Text?, Diagnostics[] }` shapes. That
+is the whole reason the request/result carry no handles: they are designed to survive a trip
+across a process boundary. `HtmlBundleBuildSystem.Register(container)` wires the class to
+resolve `BundlerKey` from DI, so a host chooses the bundler. The headless registry passes the
+node-only `EsbuildBundler`; Plexus's renderer passes an `IpcBundler` that forwards the request
+to the main process — same six actions, same build system, the one node-only step pushed
+elsewhere. See the Plexus
+[process-agnostic build deep-dive](../../plexus/architecture/process-agnostic-builds.md).
 
 **1. ResolveBasesAction** and **2. CompileModelAction** are exactly the two shared
 actions described above — the same classes, imported from `npm/`. What matters for
@@ -477,92 +501,100 @@ writes as `model.json`), but `.fullDocument`, the full transitive closure. A run
 app has no base packages to resolve at load time, so it needs the whole graph, not a
 package fragment.
 
-**3. EmitEntryAction** (`html-bundle/emit-entry-action.ts`) writes `generated/entry.ts`
-— but into the **sandbox**, not the project, by filling a small template:
+**3. EmitEntryAction** (`html-bundle/emit-entry-action.ts`) writes `entry.ts` — into the
+**sandbox root**, not the project — by filling a small template (`{App}` substituted):
 
 ```ts
-import { app } from "../compiled/app.mu.js";
-import { {{PkgClass}} } from "./model.js";
+import { app } from "./src/app.mu.js";
+import { {App} } from "./src/main.js";
+import { model } from "./generated/data.js";
 import { TodlAppBootstrap } from "@pragmatic-tech-ai/todl";
-const dto = {{PkgClass}}.fromJSON((window as any).__TODL_APP__);
-TodlAppBootstrap.Mount(app, dto);
+new {App}();
+TodlAppBootstrap.Mount(app, model);
 ```
 
-`{{PkgClass}}` is `pascalCase(manifest.id ?? manifest.name)` — the same DTO class name
-the `DtoGenerator` project content generator already wrote into `generated/model.ts`
-before this build ever started (that is exactly what the `model-dto` requirement above
-guarantees). `entry.ts` is fixed build glue: it does not depend on the compiled model's
-shape, only on the manifest's id or name, and it is never hand-edited — which is why it
-belongs in `ctx.Sandbox`, regenerated fresh every build, rather than in `ctx.Project`
-alongside the two generator-owned files. This is the wiring: rehydrate the model data
-that will be inlined into the final page, import the mural `Application` the compiler
-will have produced from the project's `generated/app.mu`, and mount one against the
-other.
+`{App}` is `AppNaming.AppClass(manifest.id ?? manifest.name)` — the same view-model class
+`AppViewModelGenerator` already wrote into `src/main.ts`. `entry.ts` is fixed build glue: it
+depends only on the manifest's id or name, is never hand-edited, and so lives in `ctx.Sandbox`,
+regenerated fresh every build, rather than in `ctx.Project` beside the generator-owned files.
 
-**4. CompileMuralAction** (`html-bundle/compile-mural-action.ts`) is the first action
-that writes into the **sandbox** rather than the project — its output is compiled JS,
-build output, never something a developer edits directly. It walks every `.mu` file
-under the project (`StorageTree.Files`, filtered by extension) — hand-authored ones and
-the project's own `generated/app.mu` alike (already required to exist, per above), since
-downstream stages are provenance-blind by file type — and compiles each through mural's
-own `compile()` to `compiled/<basename>.mu.js`. Before compiling anything, it
-precomputes every source's output path and checks for collisions: two `.mu` files in
-different folders that share a basename (`a/app.mu` and `b/app.mu`) would both target
-`compiled/app.mu.js`, silently clobbering one with the other. That is reported as an
-error and the pipeline stops before any file is written, rather than emitting a bundle
-built from whichever file happened to compile last. Any compile error (mural's
-`ParseError`/`EmitError`, or anything else) is likewise reported by source file name and
-stops the pipeline.
+The line **order here is load-bearing, and is the single subtlest thing in the whole target.**
+`import { app }` is first because evaluating the compiled `app.mu.js` is what constructs the
+mural `Application` and sets `Application.current`. Only *after* that does `new {App}()` run the
+view-model's constructor — the one that registers the instance into `Application.current.Services`
+so the markup's `$service({App})` binding can resolve it. Reverse those two, and the view-model
+would self-register against an `Application` that does not exist yet, leaving `$service` empty and
+the page blank. (The view-model class is only *defined* in `src/main.ts`, never instantiated
+there, precisely so this entry controls when the one instance is created.) The full boot sequence
+and the two blank-page failure modes it guards against are traced in
+[The runnable app](runnable-app.md).
 
-**5. BundleAppAction** (`html-bundle/bundle-app-action.ts`) is the most involved action
-in the pipeline. It runs esbuild over the staged entry point with:
+**4. CompileMuralAction** (`html-bundle/compile-mural-action.ts`) compiles the project's
+`.mu` into JavaScript, writing into the **sandbox** — compiled JS is build output, never
+something a developer edits. It delegates to the shared `MuralCompiler`
+(`todl-build-system/mural/mural-compiler.ts`), the same class npm-package uses, but hands
+it `MuralOutputLayout.Sibling`:
 
 ```ts
-{
-    bundle: true,
-    format: "iife",
-    platform: "browser",
-    target: "es2020",
-    keepNames: true,
-    conditions: ["development"],
-}
+const written = await new MuralCompiler(MuralOutputLayout.Sibling).Compile(ctx);
 ```
 
-`format: "iife"` and `platform: "browser"` produce a single self-executing script safe
-to inline into a static page with no module loader; `target: "es2020"` matches the
-runtime environments the app targets. `keepNames: true` is not cosmetic — mural relies
-on name-keyed lookups internally, so allowing esbuild's minifier/bundler to rename
-bindings would silently break resolution at runtime. `conditions: ["development"]` tells
-esbuild's resolver to honor the `development` export condition in
-`@pragmatic-tech-ai/*` packages' `package.json`, which maps those bare specifiers to
-their raw TypeScript `src/` entry points rather than a compiled `dist/`.
+`MuralOutputLayout` has two members. The default, `CompiledBasename`, flattens every source
+to `compiled/<basename>.mu.js` (what npm-package wants for its package layout). `Sibling`
+instead keeps each source's own path and just appends `.js`: `src/app.mu` compiles to
+`src/app.mu.js`, `src/widgets/card.mu` to `src/widgets/card.mu.js`. The html-bundle target
+needs `Sibling` because its entry point imports the app root by its real project path
+(`import { app } from "./src/app.mu.js"`), and because a developer's hand-added `.mu` files
+can sit in nested folders whose structure must survive into the bundle. The compiler walks
+every `.mu` under the project (hand-authored and the required `src/app.mu` alike — downstream
+stages are provenance-blind), excluding build output (`dist/`) and presentation sources
+(`presentation.generated.mu`, anything under a top-level `presentation/`). It pre-scans for
+output-path collisions and reports any as an error that stops the pipeline before a byte is
+written; any mural `ParseError`/`EmitError` is likewise reported by source file name and
+stops the pipeline. On any failure it records no `CompiledUi` artifact at all, so the
+consume-before-produce contract halts the bundle.
 
-The hard part, spelled out at length in the source comments, is module resolution
-across storages that aren't necessarily one real filesystem: `generated/entry.ts` lives
-in `ctx.Project`, the compiled `.mu.js` modules live in `ctx.Sandbox`, and neither
-`IStorage` is guaranteed to sit next to a `node_modules` directory esbuild can walk up
-to. The action's answer is to materialize both trees into one real, on-disk temp
-directory — created with `mkdtempSync` **inside the TODL repo/source-checkout root**
-(found by walking up from the action module's own file location until a `node_modules`
-folder turns up) — so that from that staging directory, esbuild's normal upward
-`node_modules` walk finds the real one, and the `@pragmatic-tech-ai/todl` package
-resolves by self-reference against its own exports map. A regex,
-`/\bexport const app\b/`, is used to find exactly one compiled module among
-`HtmlArtifacts.CompiledUi` that is the application root — the binding mural emits for an
-`Application` carrying an `x:root` visual — with a word-boundary check so a sibling
-export like `appBar` or `appTheme` is not misread as a second root; more than one match
-is reported as an unsupported ambiguity, and `compiled/app.mu.js` is hard-required as
-that root's expected path.
+**5. BundleAppAction** (`html-bundle/bundle-app-action.ts`) turns the staged modules into
+one self-executing script — but it no longer *does* the bundling itself. Its job is now to
+**assemble the input and delegate** to the injected `IBundler`. It gathers the staged file
+set — the project's own `src/` and `generated/` trees (read from `ctx.Project`, so a
+developer's hand-added `.ts`/`.mu` files come along), plus the compiled `.mu.js` modules and
+the `entry.ts` glue from `ctx.Sandbox` — with the sandbox winning any path collision, so a
+compiled `src/app.mu.js` is never shadowed by the `src/app.mu` source beside it. Before
+delegating it hard-requires `src/app.mu.js` among `HtmlArtifacts.CompiledUi` as the app
+root (the known path the entry imports), erroring out with a clear message if it is absent.
+Then:
 
-This staging-in-the-repo-root approach is also the source of a deliberate, documented
-gotcha: because it resolves `@pragmatic-tech-ai/*` packages through the `development`
-condition against their TypeScript `src`, `BundleAppAction` currently only works for an
-in-repo or source-checkout TODL — a published, installed TODL package ships only
-`dist` (its `src` is absent per the package's `files` allow-list), so bundling against an
-installed dependency is not yet supported. The class doc calls this out explicitly as a
-known, deferred follow-up: making it work would mean resolving the `default` (built
-`dist`) condition instead of `development`, and no consumer builds against an installed
-`todl` yet, so the gap has not needed closing.
+```ts
+const result = await this.bundler.BundleApp({ Entry: entry, Files: files });
+```
+
+Diagnostics from the bundler are reported through `ctx.Diagnostics`; on success the finished
+script lands in `HtmlArtifacts.AppBundle`. Any thrown error is caught and reported as an
+error diagnostic (honoring the no-throw action contract) rather than escaping the pipeline.
+
+Everything esbuild-specific now lives behind the seam, in the default `IBundler`,
+`EsbuildBundler` (`html-bundle/node/esbuild-bundler.ts`). It is the node-only half: it
+materializes the staged `Files` into a real temp directory created **inside the nearest
+`node_modules`-bearing root** (so esbuild's normal upward resolution finds the real
+`node_modules` and `@pragmatic-tech-ai/todl` resolves by self-reference), then runs esbuild
+with `format: "iife"`, `platform: "browser"`, `target: "es2020"`, and `keepNames: true`
+(not cosmetic — mural's internal lookups are name-keyed, so renaming bindings would break
+resolution at runtime). It carries two further subtleties worth knowing:
+
+- A **`todl-single-mural` dedup plugin**: an `onResolve` hook that anchors every
+  `@pragmatic-tech-ai/mural` specifier to the consumer's one hoisted copy. Without it a
+  nested second mural copy in the module graph yields two `Application.current` cells, and
+  the theme manager throws — a failure that once shipped as a blank page.
+- A **`development`-vs-`default` condition probe**: it checks whether todl's `src` is present
+  and honors the `development` export condition (raw TypeScript) when it is, falling back to
+  the built `dist` otherwise — so the same bundler works against an in-repo checkout and an
+  installed package alike.
+
+Failures become `Severity.Error` diagnostics, never exceptions. Because this entire class is
+isolated behind `IBundler`, a browser host substitutes an `IpcBundler` that ships the plain
+`BundleAppRequest` to another process and runs `EsbuildBundler` there — see the Plexus
+[process-agnostic build deep-dive](../../plexus/architecture/process-agnostic-builds.md).
 
 **6. EmitBundledHostAction** (`html-bundle/emit-bundled-host-action.ts`) is the final
 step, writing into the **sandbox**. It reads `NpmArtifacts.CompiledModel.fullDocument`
@@ -577,33 +609,33 @@ accepts exactly the `TodlDocument` shape being inlined.
 ### What HtmlArtifacts carries
 
 The three keys in `HtmlArtifacts` (`html-bundle/html-artifacts.ts`) are the thread that
-ties the html-bundle-specific actions together: `AppEntry` (the path to
-`generated/entry.ts`, produced by action 3), `CompiledUi` (the list of compiled `.mu.js`
-sandbox paths, produced by action 4), and `AppBundle` (the finished bundle string,
-produced by action 5 and consumed by action 6). Action 5 (`BundleAppAction`) is the
-pipeline's busiest consumer, declaring `Consumes: [AppEntry, CompiledUi]` — it needs the
-entry point to bundle and the compiled UI modules to find the app root among. There is
-no `GeneratedDto` key any more: `generated/model.ts` is produced before this pipeline
-ever runs, by the `DtoGenerator` project content generator, so nothing inside html-bundle
-needs to pass its path around as a hot value — the build only reads it transitively,
-through the entry point's `import { {{PkgClass}} } from "./model.js"`.
+ties the html-bundle-specific actions together: `AppEntry` (the sandbox path `entry.ts`,
+produced by action 3), `CompiledUi` (the list of compiled `.mu.js` sandbox paths, produced
+by action 4), and `AppBundle` (the finished bundle string, produced by action 5 and consumed
+by action 6). Action 5 (`BundleAppAction`) is the pipeline's busiest consumer, declaring
+`Consumes: [AppEntry, CompiledUi]` — it needs the entry point to bundle and the compiled UI
+modules to confirm the app root among. There is no DTO key: `generated/model.ts` and
+`generated/data.ts` are produced before this pipeline ever runs, by the project content
+generators, so nothing inside html-bundle passes their paths around as hot values — the build
+only reads them transitively, through the entry point's imports.
 
-### History note: from a frozen bundle to a compiled app, to a generator-owned one
+### History note: from a frozen bundle, to a compiled app, to an editable source tree
 
-The current design has gone through two shapes. It started by inlining a single frozen,
-committed 3.5 MB runtime bundle into every build and injecting only the model's *data*
-into it — one shared, static piece of view logic for every project. That gave way to the
-per-project compiler described above: view logic moved into the project's own generated
-`app.mu`, and the mural runtime that renders it is compiled fresh on every build rather
-than reused verbatim. A second change then moved `generated/model.ts` and
-`generated/app.mu` generation out of this pipeline entirely, into the project content
-generators (see [Project content generators](content-generators.md)) — the build now
-requires both files rather than creating either, and what used to be a build-time clobber
-guard on `generated/app.mu` is now simply `UiPlaceholderGenerator`'s `WriteOnce` policy,
-enforced once, outside any build. The trade is a heavier, more moving-parts build (a real
-mural compile plus a real esbuild bundle per project) in exchange for a per-project,
-per-model view that a developer can actually read, diff, and hand-edit — and, now, edit
-independently of ever running a build at all.
+The current design has gone through three shapes. It started by inlining a single frozen,
+committed 3.5 MB runtime bundle into every build and injecting only the model's *data* into it
+— one shared, static piece of view logic for every project. That gave way to a per-project
+compiler: view logic moved into the project's own generated `app.mu`, and the mural runtime
+that renders it is compiled fresh on every build rather than reused verbatim. The third and
+current shape moved generation out of the build entirely, into the
+[project content generators](content-generators.md), and reshaped the output from one machine
+`generated/app.mu` into a real **editable `src/` application** — `src/app.mu` plus a paired
+`src/main.ts` view-model, with the DTO and data confined to `generated/`. The build now
+*requires* those files rather than creating any, and the old build-time clobber guard is simply
+the `WriteOnce` policy on the two `src/` generators, enforced once, outside any build. In the
+same arc the one node-only step, esbuild, moved behind the `IBundler` seam, making the whole
+target host-agnostic. The trade is a heavier, more moving-parts build (a real mural compile plus
+a real bundle per project) in exchange for an application a developer can read, diff, hand-edit,
+extend with their own files — and run in a browser renderer as readily as a headless CLI.
 
 ## Summary: what to remember
 
@@ -613,10 +645,10 @@ project content a generator must have already produced) and its output atomic on
 runs (sandbox-then-promote, only on full success). TODL's two build systems both start
 the same way — resolve bases, compile the closure — and then diverge based on what they
 are building: npm-package stages a package fragment (`.document`) plus source for
-publication; html-bundle requires a typed DTO and a default UI that already live in the
-project (written by generators, not by this pipeline), emits the fixed entry-point glue
-into its sandbox, compiles and bundles all of it, and emits one file a browser can open
-with nothing else installed.
+publication; html-bundle requires the project's editable `src/` application plus its
+`generated/` DTO and data (written by generators, not by this pipeline), emits the fixed
+entry-point glue into its sandbox, compiles and bundles all of it through a swappable
+`IBundler`, and emits one file a browser can open with nothing else installed.
 
 ---
 
